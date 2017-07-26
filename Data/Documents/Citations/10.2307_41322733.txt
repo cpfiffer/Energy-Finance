@@ -1,0 +1,14 @@
+@article{10.2307/41322733,
+ ISSN = {01956574, 19449089},
+ URL = {http://www.jstor.org/stable/41322733},
+ abstract = {According to Weiner (1991), the world oil market is said to be unified if prices for same quality crude oils from different regions of the world move together and regionalized otherwise. This hypothesis of Weiner is kept unchanged. However, we are more interested in the efficiency implications of a regionalized world oil market than its policy implications as discussed by Weiner. Specifically, if these prices deviate from each other, i.e., the market is fragmented, there will be arbitrage opportunities for crude oil traders which would render the market inefficient. In this paper, the regionalization hypothesis is investigated via cointegration tests using both spot and contract prices for fifteen crude oils. Three groups of similar quality crudes are formed based on API gravity and sulfur content. Tests of cross-group co-movement which provided evidence for significant quality differences between heavy and light crudes further supported our groupings. Then the co-movement of prices is tested within each group. The crash in 1986 is explicitly dealt with following methods described in Perron (1989). Results indicate that the world crude oil market is unified over the 1980-95 period.},
+ author = {S. Gürcan Gülen},
+ journal = {The Energy Journal},
+ number = {2},
+ pages = {109-126},
+ publisher = {International Association for Energy Economics},
+ title = {Regionalization in the World Crude Oil Market},
+ volume = {18},
+ year = {1997}
+}
+

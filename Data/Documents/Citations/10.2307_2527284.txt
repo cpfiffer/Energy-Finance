@@ -1,0 +1,14 @@
+@article{10.2307/2527284,
+ ISSN = {00206598, 14682354},
+ URL = {http://www.jstor.org/stable/2527284},
+ abstract = {In this paper, we consider a model in which there is discontinuous adjustment to a long-run equilibrium. Here, the equilibrium error follows a threshold autoregression that is mean-reverting outside a given range and has a unit root inside the range. We suggest a two-step approach for examining threshold cointegration. We find that standard time series methods developed for testing for cointegration in the linear case work reasonably well when threshold cointegration is present. We then consider a `sup-Wald' test of linearity that takes the double-threshold model as the alternative hypothesis.},
+ author = {Nathan S. Balke and Thomas B. Fomby},
+ journal = {International Economic Review},
+ number = {3},
+ pages = {627-645},
+ publisher = {[Economics Department of the University of Pennsylvania, Wiley, Institute of Social and Economic Research, Osaka University]},
+ title = {Threshold Cointegration},
+ volume = {38},
+ year = {1997}
+}
+

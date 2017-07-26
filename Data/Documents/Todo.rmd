@@ -1,0 +1,21 @@
+---
+title: "Todo"
+author: "Cameron Pfiffer"
+date: "July 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Data retrieval:
+
+1. Get prices for WTI and Brent, spot
+
+
+Testing:
+
+1. Stationarity
+2. Cointegration
+3. Mean-reversion?

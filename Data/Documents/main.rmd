@@ -1,0 +1,194 @@
+---
+title: "Cointegration in Crude Prices"
+author: "Cameron Pfiffer"
+date: "July 17, 2017"
+output:
+  bookdown::pdf_document2: 
+    latex_engine: xelatex
+csl: harvard.csl
+bibliography: bibliography.bibtex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include=FALSE, 
+                      warning = FALSE, error = FALSE, message = FALSE,
+                      cache = TRUE)
+```
+
+```{r include=FALSE}
+# Libraries
+library(tidyverse)
+library(xts)
+library(urca)
+library(tseries)
+```
+
+```{r include=FALSE}
+# Functions
+create_xts <- function(df) {
+  df <- xts(df$price, df$date)
+  return(df)
+}
+```
+
+\pagebreak
+
+# Introduction
+Determining whether global oil markets are cointegrated is an important question, as doing so would allow a market participant to formulate trading strategies in cases where short-term relationships break down. It makes economic sense for the two oil grades to be cointegrated -- they are essentially substitutes, with similar specific gravities and sulfur content. Indeed, Adelman [-@10.2307/41321691] claimed that "The world oil market, like the world ocean, is one great pool." This study reviews existing literature, examines the statistical relationship between Brent crude and West Texas Intermediate (WTI) crude, and proposes a trading strategy based on cointegration between the two securities.
+
+# Literature Review
+
+## Cointegration
+Cointegration as a concept was first introduced by Granger [-@granger1981some], and later expanded upon to include methodology for testing cointegration [@engle1987co]. The theory states that non-stationary series integrated of the same order may have a cointegrating vector that reduces the resulting series to a stationary process, in which case the series are said to be _cointegrated_. Assets linked by a fundamental relationship have cause to be cointegrated, and the crude oil markets are no exception. WTI and Brent crudes are both highly similar commodities, with proximate specific gravities and sulfur contents. It makes sense that two nearly fungible assets would trade at similar levels, ignoring cost of carry and transit costs. Johansen [-@10.2307/2938278] later expanded upon the Engle-Granger methodology to expand to multivariate cointegrating relationships, and offered a solution to the issue of declaring one variable dependent on the other. This paper uses both methodologies to test for cointegration.
+
+There are consistent findings amongst academics that WTI and Brent are cointegrated, and that oil levels are $I(1)$, but stationary in first differences, consistent with expectations. Hammoudeh et al. [-@showkat08] found cointegrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar cointegrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of cointegration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies. 
+
+[^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is highly important for trading strategies, though for simplicity, the cointegrating relationship between Brent and WTI is assumed to be symmetric.
+
+## Trading Strategy and Transaction Costs
+Developing a trading strategy to requires the awareness of several key facts. First, in a world absent transaction costs, any deviation from the mean should spur immediate mean reversion no matter how small, as noted by Balke and Famby [-@10.2307/2527284]. However, as we do not live in a world absent transaction costs and this is an empirical study (and thus subject to the whims of reality), an appropriate transaction cost must be assumed to evaluate the profitability of any trade. In this study, transaction costs are included by construction, as the trading simulation assumes that all purchases are make on the ask and all sales made on the bid. This is an overly simplified assumption, as this merely accounts for explicit transaction costs, and not implicit costs such as opportunity cost and market impact, among others[^tca].
+
+[^tca]: See Almgren and Chriss [-@almgren2001optimal] and Kissel [-@kissell2006expanded] for expanded transaction cost analysis methods.
+
+Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in cointegrated equities. Given that integrated series cross the mean frequently, the authors note that there are two general outcomes; first, that the spread between assets might continue away from the mean due to momentum; second, that an asset will revert towards the mean. They find Sharpe ratios of approximately 0.90 for the momentum strategy, and 0.59 for the contrarian strategy, though it should be noted that the contrarian strategy had far higher average returns, 10.69% versus the momentum strategy's 6.46%. 
+
+
+# Statistical Tests
+
+## Data
+
+The data used are daily close bid, ask, and midpoint prices for Dated Brent FOB and West Texas Intermediate FOB between January 1st, 1995 and July 14th, 2017, composing a total of 5,571 observations. Days when prices for either security was not available are removed, so that only days when both securities are traded are used. Furthermore, the data is segmented into two parts; a modeling set and a testing set. The cointegrating relationships are estimated using data between January 1st, 1995 and July 14th, 2015. The remaining two years of data is used to evaluate the trading strategy using the cointegrating vectors found in the preceding period.
+
+```{r include=FALSE}
+# Data import, cleaning, consolidation.
+brent <- read_csv("../raw/BFO.csv")
+brent$date <- parse_date(brent$date, "%d/%m/%Y")
+brent <- create_xts(brent)
+
+wti <- read_csv("../raw/WTI.csv")
+wti$date <- parse_date(wti$date, "%d/%m/%Y")
+wti <- create_xts(wti)
+
+brent_spread <- read_csv("../raw/BFObidask-daily.csv")
+brent_spread$date <- parse_date(brent_spread$date, "%m/%d/%Y")
+brent_spread <- xts(brent_spread[,2:3], brent_spread$date)
+brent_spread$spread <- brent_spread$ask - brent_spread$bid
+
+wti_spread <- read_csv("../raw/WTIbidask-daily.csv")
+wti_spread$date <- parse_date(wti_spread$date, "%m/%d/%Y")
+wti_spread <- xts(wti_spread[,2:3], wti_spread$date)
+wti_spread$spread <- wti_spread$ask - wti_spread$bid
+
+spread <- na.omit(merge(wti_spread, brent_spread))
+colnames(spread) <- c("w.ask", "w.bid", "w.spread",
+                      "b.ask", "b.bid", "b.spread")
+
+price <- merge(wti, brent)
+
+# Remove mismatched time series and remove NA
+price <- na.omit(price["1995/"])
+```
+
+
+
+## Lag Length Selection
+
+It has been noted that lag length selection can have important effects on a VAR model's impulse response and variance decompositions [@66e755df06db415c83234a6bbc768a39], and Brooks [-@brooks2014introductory] notes that Johansen tests and Augmented Dickey-Fuller tests can be sucestible to improper lag selection. Thus, we select a lag length that creates produces the most parsimonious model, i.e., the smallest lag length. The `vars` package for R [@pfaff2013package] contains a built in function for multivariate information criterion. Table \@ref(tab:ic) presents the lag lengths suggested by four information criteria tests. The Schwarz criterion suggests a lag length of 2.
+
+```{r}
+library(vars)
+lag_length <- VARselect(price, type = 'const')
+ll_table <- data.frame(lag_length$selection)
+```
+
+```{r ic,include=TRUE}
+knitr::kable(ll_table, col.names = "Lag Length", caption = "Information Criteria Lag Length", format = 'pandoc')
+```
+
+## Stationarity
+
+The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. The Augmented Dickey-Fuller test
+
+```{r}
+wti_adf <- adf.test(price$wti, k=2)
+brent_adf <- adf.test(price$brent, k=2)
+
+for(i in 1:30) {
+  pvals[i] = adf.test(price$wti, k=i)$p.value
+}
+```
+
+
+# Testing for cointegration
+
+This test evaluates whether or not an intercept would help model the data better.
+
+```{r echo=TRUE,include=TRUE}
+joc <- ca.jo(price, type = 'eigen', ecdet = 'const',
+                  K = 2, spec = 'transitory')
+summary(joc)
+```
+
+```{r}
+# Graph the spread
+range = '2005/'
+autoplot(price$brent[range] - price$wti[range]) +
+  ylab("Spread") +
+  ggtitle("Brent/WTI Spread")
+```
+
+
+
+```{r include=TRUE}
+# Add constant to dataset
+pricecon <- price
+pricecon$constant <- rep(1)
+
+sc1 <- xts(pricecon %*% joc@V[,1], order.by = index(price))
+sc2 <- xts(pricecon %*% joc@V[,2], order.by = index(price))
+sc3 <- xts(pricecon %*% joc@V[,3], order.by = index(price))
+
+ggplot() +
+  geom_line(mapping = aes(Index, sc1), color = 'blue', data = fortify(sc1)) +
+  geom_line(mapping = aes(Index, sc2), color = 'red', data = fortify(sc2)) + 
+  geom_line(mapping = aes(Index, sc3), color = 'purple', data = fortify(sc3))
+```
+
+
+```{r include=TRUE}
+ggplot() +
+  geom_line(mapping = aes(Index, sc1), color = 'blue', data = fortify(sc1)) +
+  geom_line(mapping = aes(Index, (price$brent - price$wti)), color = 'red', data = fortify(sc2))
+```
+
+# Turning the VECM into a VAR
+
+```{r}
+varc <- vars::vec2var(joc)
+```
+
+
+
+The structural break that occurs in recent periods is making the mean-reversion model fall apart, let's look at a model based on a smaller subsample.
+
+```{r}
+subjo <- ca.jo(price['2010/2015'], type = 'eigen', ecdet = 'const',
+                  K = 2, spec = 'transitory')
+
+substationary <- xts(pricecon['2010/'] %*% subjo@V[,1], 
+                     order.by = index(pricecon['2010/']))
+ggplot() +
+  geom_line(mapping = aes(Index, substationary), color = 'blue', 
+            data = fortify(substationary)) +
+  geom_line(mapping = aes(Index, (price$brent['2010/'] - price$wti['2010/'])),
+            color = 'red', data = fortify(substationary))
+```
+
+```{r}
+varcs <- vars::vec2var(subjo)
+```
+
+
+
+
+# References

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "---\ntitle: \"Todo\"\nauthor: \"Cameron Pfiffer\"\ndate: \"July 17, 2017\"\noutput: html_document\n---\n\n```{r setup, include=FALSE}\nknitr::opts_chunk$set(echo = TRUE)\n```\n\nData retrieval:\n\n1. Get prices for WTI and Brent, spot\n\n\nTesting:\n\n1. Stationarity\n2. Cointegration\n3. Mean-reversion?\n",
+    "created" : 1500276932798.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2539632169",
+    "id" : "898A6F25",
+    "lastKnownWriteTime" : 1500284839,
+    "last_content_update" : -2147483648,
+    "path" : "C:/Users/cpfif/Documents/R/Energy Finance/Data/Documents/Todo.rmd",
+    "project_path" : "Documents/Todo.rmd",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

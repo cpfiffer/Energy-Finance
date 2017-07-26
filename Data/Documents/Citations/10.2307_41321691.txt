@@ -1,0 +1,13 @@
+@article{10.2307/41321691,
+ ISSN = {01956574, 19449089},
+ URL = {http://www.jstor.org/stable/41321691},
+ author = {M. A. Adelman},
+ journal = {The Energy Journal},
+ number = {3},
+ pages = {1-9},
+ publisher = {International Association for Energy Economics},
+ title = {International Oil Agreements},
+ volume = {5},
+ year = {1984}
+}
+

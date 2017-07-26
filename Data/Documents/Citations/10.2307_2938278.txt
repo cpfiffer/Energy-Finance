@@ -1,0 +1,14 @@
+@article{10.2307/2938278,
+ ISSN = {00129682, 14680262},
+ URL = {http://www.jstor.org/stable/2938278},
+ abstract = {The purpose of this paper is to present the likelihood methods for the analysis of cointegration in VAR models with Gaussian errors, seasonal dummies, and constant terms. We discuss likelihood ratio tests of cointegration rank and find the asymptotic distribution of the test statistics. We characterize the maximum likelihood estimator of the cointegrating relations and formulate tests of structural hypotheses about these relations. We show that the asymptotic distribution of the maximum likelihood estimator is mixed Gaussian. Once a certain eigenvalue problem is solved and the eigenvectors and eigenvalues calculated, one can conduct inference on the cointegrating rank using some nonstandard distributions, and test hypotheses about cointegrating relations using the χ <sup>2</sup> distribution.},
+ author = {Søren Johansen},
+ journal = {Econometrica},
+ number = {6},
+ pages = {1551-1580},
+ publisher = {[Wiley, Econometric Society]},
+ title = {Estimation and Hypothesis Testing of Cointegration Vectors in Gaussian Vector Autoregressive Models},
+ volume = {59},
+ year = {1991}
+}
+
