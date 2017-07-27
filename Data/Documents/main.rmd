@@ -11,8 +11,7 @@ bibliography: bibliography.bibtex
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, include=FALSE, 
-                      warning = FALSE, error = FALSE, message = FALSE,
-                      cache = TRUE)
+                      warning = FALSE, error = FALSE, message = FALSE)
 ```
 
 ```{r include=FALSE}
@@ -21,6 +20,7 @@ library(tidyverse)
 library(xts)
 library(urca)
 library(tseries)
+library(tidyquant)
 ```
 
 ```{r include=FALSE}
@@ -83,10 +83,25 @@ spread <- na.omit(merge(wti_spread, brent_spread))
 colnames(spread) <- c("w.ask", "w.bid", "w.spread",
                       "b.ask", "b.bid", "b.spread")
 
-price <- merge(wti, brent)
+price <- na.omit(merge(wti, brent))
 
+# Format total dataframe in OLS format
+p_tib <- as_tibble(price)
+
+p_tib <- mutate(p_tib,
+          wti.dl1 = diff.xts(wti),
+          brent.dl1 = diff.xts(brent),
+          wti.l1  = lag.xts(wti),
+          brent.l1 = lag.xts(brent),
+          constant = 1)
+
+p_tib <- xts(p_tib, order.by = index(price))["1995/"]
+
+
+test_set <- price["2015-07-15/"]
 # Remove mismatched time series and remove NA
-price <- na.omit(price["1995/"])
+price <- price["1995/2015-07-14"]
+
 ```
 
 
@@ -107,27 +122,134 @@ knitr::kable(ll_table, col.names = "Lag Length", caption = "Information Criteria
 
 ## Stationarity
 
-The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. The Augmented Dickey-Fuller test
+The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. It is important to find unit roots in the levels of each potentially cointegrated series -- if only one of two series is $I(1)$ and the other is $I(0)$, there can be no cointegrting vector and no inferences about the long term relationship between the two assets can be made. 
+
+Table \@ref(tab:adfsummary) presents summary statistics for each series using lag $k=2$, with the results clearly showing unit roots in both series. This is the expected result; few would look at a pricing chart and state that it is stationary. 
 
 ```{r}
 wti_adf <- adf.test(price$wti, k=2)
 brent_adf <- adf.test(price$brent, k=2)
 
-for(i in 1:30) {
-  pvals[i] = adf.test(price$wti, k=i)$p.value
+summarise_adf <- function(adf) {
+  adf_sum <- c(adf$statistic, adf$p.value)
+  names(adf_sum) <- c("Augmented Dickey-Fulley Statistic", "P Value")
+  return(adf_sum)
 }
+
+wti_adf_summary <- summarise_adf(wti_adf)
+brent_adf_summary <- summarise_adf(brent_adf)
+adf_table <- t(data.frame(wti_adf_summary, brent_adf_summary))
+row.names(adf_table) <- c("WTI", "Brent")
+```
+
+```{r adfsummary, include=TRUE}
+knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary", 
+             format = 'pandoc')
 ```
 
 
-# Testing for cointegration
 
-This test evaluates whether or not an intercept would help model the data better.
+## Testing for Cointegration
 
-```{r echo=TRUE,include=TRUE}
+Two common methodologies in testing for cointegration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is simple, though it suffers from some issues that cannot be solved by large sample sizes. First, hypothesis testing about the cointegrating relationship cannot be performed using the stage 1 regression, though for the purposes of this study, this is not a large issue. The goal here is to describe the relationship, not evaluate a prior expectation or challenge a thesis. The second problem is that there may be multiple cointegrating relationships due to multiple variables, though, again, this is not an issue as we are only testing two variables. Thus, the Engle-Granger method is sufficient for explaining the relaitonship between the two series. 
+
+The Johansen test is used primarily as an educational exercise, and to compare results of the cointegrating relationship. As the primary purpose of generating the cointegrating series is to forecast returns to the mean and not simply to explain movements in a series, the Engle-Granger method is perhaps less appropriate. ===================
+
+
+The results for the Engle-Granger method are as follows. The first step involves estimating a model of the form:
+
+$$\text{wti}_t =\alpha + \beta_1 \text{brent}_t + \epsilon_t$$
+
+Next, a unit root test is run on the $\epsilon$ term to determine that it is stationary. If the null hypothesis of stationarity is rejected, the residuals are stationary, and thus WTI and Brent are cointegrated. The residuals are then used in the error correction model below:
+
+$$\Delta \text{wti}_t=\alpha + \beta_1\Delta \text{brent}_t+\beta_2(\hat{\epsilon}_{t-1})+v_t$$
+
+Where $\hat{\epsilon}_{t-1}$ is the residuals estimated in the first step. The intuition for the model is fairly simple - once the cointegrating relationship ($\beta_1$) is estimated, the coefficient of the lagged error ($\beta_2$) represents the "speed" at which past errors are corrected. It should also be noted that an intercept ($\alpha$) is included in both the preceding equations, as there is little cause to exclude the intercept from the regression, and the intercept term is insignificant anyway. Thus, if $\hat{\epsilon}_{t-1}$ is large and $\beta_2$ is negative (as expected[^beta2]), there will be (on average) a revision towards the mean in the opposite direction of the error.  Table \@ref(tab:egsummary) displays the results of the residuals test, and Table \@ref(tab:egmodel) summarises the results of the error correction model.
+
+[^beta2]: It's highly unlikely that $\beta_2$ would ever be positive, as that represents an explosive process, and the process wouldn't be stationary.
+
+
+```{r}
+eg <- lm(formula = log10(wti) ~ log10(brent), data = price)
+eg_adf <- adf.test(eg$residuals, k=2)
+eg_dat <- data.frame(diff(price$wti), diff(price$brent), lag(eg$residuals))
+eg_correction <- lm(wti ~ brent + lag.eg.residuals.,
+                    na.action = na.omit,data = eg_dat)
+
+
+
+epsilon <- data.frame(eg_adf$statistic, eg_adf$p.value)
+colnames(epsilon) <- c("Augmented Dickey-Fulley Statistic", "P Value")
+row.names(epsilon) <- "$\\epsilon$"
+
+eg_summary <- summary(eg_correction)
+eg_coef <- eg_summary$coefficients
+row.names(eg_coef) <- c("Intercept ($\\alpha$)", 
+                        "Brent ($\\beta_1$)",
+                        "Residuals ($\\epsilon$)")
+```
+
+```{r egsummary, include=TRUE}
+knitr::kable(epsilon, caption = "Engle-Granger Residuals Test", 
+             format = 'pandoc')
+```
+
+
+
+
+```{r egmodel, include=TRUE}
+knitr::kable(eg_coef, caption = "Engle-Granger Error Correction Model Summary",
+             format = 'pandoc')
+```
+
+As Table \@ref(tab:egmodel) demonstrates, the coefficients on the Brent is significant, as would be expected of a cointegrated relationship, and the coefficient on the residual is negative and significant. 
+
+It's also important to note that, because the error correction model is estimated using OLS, ensuring that the assumptions of the estimator are not violated is worth a cursory check. 
+
+
+```{r}
+# Test OLS stuff
+ass1 <- "$\\text{E}(\\epsilon_t)=0$"
+
+ass2 <- "$\\text{var}(u_t)=\\sigma^2 < \\infinity$"
+white <- white.test(as.ts(eg$residuals))
+
+ass3 <- "$\\text{cov}(u_t, u_j)=0$"
+ass4 <- "$\\text{cov}(u_t,x_t) = 0$"
+ass5 <- "$u_t ~ N(0, \\sigma^2)$"
+
+row1 <- c(ass1, paste("Residual mean is ", mean(eg$residuals)))
+row2 <- c(ass1, paste("White test pvalue is ", white$p.value))
+```
+
+```{r include=TRUE}
+fitted = xts(eg_correction$fitted.values, 
+             order.by = as.Date(names(eg_correction$fitted.values)))
+
+colnames(fitted) <- "Fitted"
+
+ggplot() +
+  geom_line(mapping = aes(x=index(fitted), y = wti),
+            data = eg_correction$model, color = 'red', alpha = 0.2) +
+  geom_line(mapping = aes(x=index(fitted), y = Fitted),
+            data = fitted, color = 'blue', alpha = 0.2) +
+  geom_line(mapping = aes(x=index(fitted), y = eg_correction$residuals),
+            alpha = 0.5)
+```
+
+
+
+```{r}
 joc <- ca.jo(price, type = 'eigen', ecdet = 'const',
                   K = 2, spec = 'transitory')
 summary(joc)
 ```
+
+```{r}
+# Turn Johansen into an OLS equation, plot results
+jocols <- cajools(joc)
+```
+
 
 ```{r}
 # Graph the spread
@@ -138,57 +260,25 @@ autoplot(price$brent[range] - price$wti[range]) +
 ```
 
 
-
-```{r include=TRUE}
-# Add constant to dataset
-pricecon <- price
-pricecon$constant <- rep(1)
-
-sc1 <- xts(pricecon %*% joc@V[,1], order.by = index(price))
-sc2 <- xts(pricecon %*% joc@V[,2], order.by = index(price))
-sc3 <- xts(pricecon %*% joc@V[,3], order.by = index(price))
-
-ggplot() +
-  geom_line(mapping = aes(Index, sc1), color = 'blue', data = fortify(sc1)) +
-  geom_line(mapping = aes(Index, sc2), color = 'red', data = fortify(sc2)) + 
-  geom_line(mapping = aes(Index, sc3), color = 'purple', data = fortify(sc3))
-```
-
-
-```{r include=TRUE}
-ggplot() +
-  geom_line(mapping = aes(Index, sc1), color = 'blue', data = fortify(sc1)) +
-  geom_line(mapping = aes(Index, (price$brent - price$wti)), color = 'red', data = fortify(sc2))
-```
-
-# Turning the VECM into a VAR
+## Predicting the test set
 
 ```{r}
-varc <- vars::vec2var(joc)
-```
+new_predictions <- as_xts(predict(jocols, newdata = p_tib['2015-07-15/']))
+index(new_predictions) <- as.Date(index(new_predictions))
 
+actual_diff <- diff.xts(p_tib[,1:2])['2015-07-15/']
 
-
-The structural break that occurs in recent periods is making the mean-reversion model fall apart, let's look at a model based on a smaller subsample.
-
-```{r}
-subjo <- ca.jo(price['2010/2015'], type = 'eigen', ecdet = 'const',
-                  K = 2, spec = 'transitory')
-
-substationary <- xts(pricecon['2010/'] %*% subjo@V[,1], 
-                     order.by = index(pricecon['2010/']))
 ggplot() +
-  geom_line(mapping = aes(Index, substationary), color = 'blue', 
-            data = fortify(substationary)) +
-  geom_line(mapping = aes(Index, (price$brent['2010/'] - price$wti['2010/'])),
-            color = 'red', data = fortify(substationary))
-```
-
-```{r}
-varcs <- vars::vec2var(subjo)
+  geom_line(mapping = aes(x=index(new_predictions), y=brent.d), color = "red", 
+            data = new_predictions) +
+  geom_line(mapping = aes(x=index(actual_diff), y=brent), 
+            data = actual_diff)
 ```
 
 
 
+
+
+\pagebreak
 
 # References

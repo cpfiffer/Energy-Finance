@@ -1,5 +1,0 @@
-"0","wti_adf <- adf.test(price$wti, k=2)"
-"0","brent_adf <- adf.test(price$brent, k=2)"
-"0","for(i in 1:30) {"
-"0","  pvals[i] = adf.test(price$wti, k=i)$p.value"
-"0","}"
