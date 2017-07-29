@@ -3,14 +3,14 @@ title: "Cointegration in Crude Prices"
 author: "Cameron Pfiffer"
 date: "July 17, 2017"
 output:
-  bookdown::pdf_document2: 
+  bookdown::pdf_document2:
     latex_engine: xelatex
 csl: harvard.csl
 bibliography: bibliography.bibtex
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, include=FALSE, 
+knitr::opts_chunk$set(echo = FALSE, include=FALSE,
                       warning = FALSE, error = FALSE, message = FALSE)
 ```
 
@@ -41,7 +41,7 @@ Determining whether global oil markets are cointegrated is an important question
 ## Cointegration
 Cointegration as a concept was first introduced by Granger [-@granger1981some], and later expanded upon to include methodology for testing cointegration [@engle1987co]. The theory states that non-stationary series integrated of the same order may have a cointegrating vector that reduces the resulting series to a stationary process, in which case the series are said to be _cointegrated_. Assets linked by a fundamental relationship have cause to be cointegrated, and the crude oil markets are no exception. WTI and Brent crudes are both highly similar commodities, with proximate specific gravities and sulfur contents. It makes sense that two nearly fungible assets would trade at similar levels, ignoring cost of carry and transit costs. Johansen [-@10.2307/2938278] later expanded upon the Engle-Granger methodology to expand to multivariate cointegrating relationships, and offered a solution to the issue of declaring one variable dependent on the other. This paper uses both methodologies to test for cointegration.
 
-There are consistent findings amongst academics that WTI and Brent are cointegrated, and that oil levels are $I(1)$, but stationary in first differences, consistent with expectations. Hammoudeh et al. [-@showkat08] found cointegrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar cointegrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of cointegration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies. 
+There are consistent findings amongst academics that WTI and Brent are cointegrated, and that oil levels are $I(1)$, but stationary in first differences, consistent with expectations. Hammoudeh et al. [-@showkat08] found cointegrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar cointegrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of cointegration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies.
 
 [^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is highly important for trading strategies, though for simplicity, the cointegrating relationship between Brent and WTI is assumed to be symmetric.
 
@@ -50,7 +50,7 @@ Developing a trading strategy to requires the awareness of several key facts. Fi
 
 [^tca]: See Almgren and Chriss [-@almgren2001optimal] and Kissel [-@kissell2006expanded] for expanded transaction cost analysis methods.
 
-Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in cointegrated equities. Given that integrated series cross the mean frequently, the authors note that there are two general outcomes; first, that the spread between assets might continue away from the mean due to momentum; second, that an asset will revert towards the mean. They find Sharpe ratios of approximately 0.90 for the momentum strategy, and 0.59 for the contrarian strategy, though it should be noted that the contrarian strategy had far higher average returns, 10.69% versus the momentum strategy's 6.46%. 
+Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in cointegrated equities. Given that integrated series cross the mean frequently, the authors note that there are two general outcomes; first, that the spread between assets might continue away from the mean due to momentum; second, that an asset will revert towards the mean. They find Sharpe ratios of approximately 0.90 for the momentum strategy, and 0.59 for the contrarian strategy, though it should be noted that the contrarian strategy had far higher average returns, 10.69% versus the momentum strategy's 6.46%.
 
 
 # Statistical Tests
@@ -122,9 +122,9 @@ knitr::kable(ll_table, col.names = "Lag Length", caption = "Information Criteria
 
 ## Stationarity
 
-The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. It is important to find unit roots in the levels of each potentially cointegrated series -- if only one of two series is $I(1)$ and the other is $I(0)$, there can be no cointegrting vector and no inferences about the long term relationship between the two assets can be made. 
+The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. It is important to find unit roots in the levels of each potentially cointegrated series -- if only one of two series is $I(1)$ and the other is $I(0)$, there can be no cointegrting vector and no inferences about the long term relationship between the two assets can be made.
 
-Table \@ref(tab:adfsummary) presents summary statistics for each series using lag $k=2$, with the results clearly showing unit roots in both series. This is the expected result; few would look at a pricing chart and state that it is stationary. 
+Table \@ref(tab:adfsummary) presents summary statistics for each series using lag $k=2$, with the results clearly showing unit roots in both series. This is the expected result; few would look at a pricing chart and state that it is stationary.
 
 ```{r}
 wti_adf <- adf.test(price$wti, k=2)
@@ -143,7 +143,7 @@ row.names(adf_table) <- c("WTI", "Brent")
 ```
 
 ```{r adfsummary, include=TRUE}
-knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary", 
+knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary",
              format = 'pandoc')
 ```
 
@@ -151,7 +151,7 @@ knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary",
 
 ## Testing for Cointegration
 
-Two common methodologies in testing for cointegration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is simple, though it suffers from some issues that cannot be solved by large sample sizes. First, hypothesis testing about the cointegrating relationship cannot be performed using the stage 1 regression, though for the purposes of this study, this is not a large issue. The goal here is to describe the relationship, not evaluate a prior expectation or challenge a thesis. The second problem is that there may be multiple cointegrating relationships due to multiple variables, though, again, this is not an issue as we are only testing two variables. Thus, the Engle-Granger method is sufficient for explaining the relaitonship between the two series. 
+Two common methodologies in testing for cointegration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is simple, though it suffers from some issues that cannot be solved by large sample sizes. First, hypothesis testing about the cointegrating relationship cannot be performed using the stage 1 regression, though for the purposes of this study, this is not a large issue. The goal here is to describe the relationship, not evaluate a prior expectation or challenge a thesis. The second problem is that there may be multiple cointegrating relationships due to multiple variables, though, again, this is not an issue as we are only testing two variables. Thus, the Engle-Granger method is sufficient for explaining the relaitonship between the two series.
 
 The Johansen test is used primarily as an educational exercise, and to compare results of the cointegrating relationship. As the primary purpose of generating the cointegrating series is to forecast returns to the mean and not simply to explain movements in a series, the Engle-Granger method is perhaps less appropriate. ===================
 
@@ -170,7 +170,7 @@ Where $\hat{\epsilon}_{t-1}$ is the residuals estimated in the first step. The i
 
 
 ```{r}
-eg <- lm(formula = log10(wti) ~ log10(brent), data = price)
+eg <- lm(formula = (wti) ~ (brent), data = price)
 eg_adf <- adf.test(eg$residuals, k=2)
 eg_dat <- data.frame(diff(price$wti), diff(price$brent), lag(eg$residuals))
 eg_correction <- lm(wti ~ brent + lag.eg.residuals.,
@@ -184,13 +184,13 @@ row.names(epsilon) <- "$\\epsilon$"
 
 eg_summary <- summary(eg_correction)
 eg_coef <- eg_summary$coefficients
-row.names(eg_coef) <- c("Intercept ($\\alpha$)", 
+row.names(eg_coef) <- c("Intercept ($\\alpha$)",
                         "Brent ($\\beta_1$)",
                         "Residuals ($\\epsilon$)")
 ```
 
 ```{r egsummary, include=TRUE}
-knitr::kable(epsilon, caption = "Engle-Granger Residuals Test", 
+knitr::kable(epsilon, caption = "Engle-Granger Residuals Test",
              format = 'pandoc')
 ```
 
@@ -202,9 +202,9 @@ knitr::kable(eg_coef, caption = "Engle-Granger Error Correction Model Summary",
              format = 'pandoc')
 ```
 
-As Table \@ref(tab:egmodel) demonstrates, the coefficients on the Brent is significant, as would be expected of a cointegrated relationship, and the coefficient on the residual is negative and significant. 
+As Table \@ref(tab:egmodel) demonstrates, the coefficients on the Brent is significant, as would be expected of a cointegrated relationship, and the coefficient on the residual is negative and significant.
 
-It's also important to note that, because the error correction model is estimated using OLS, ensuring that the assumptions of the estimator are not violated is worth a cursory check. 
+It's also important to note that, because the error correction model is estimated using OLS, ensuring that the assumptions of the estimator are not violated is worth a cursory check.
 
 
 ```{r}
@@ -223,18 +223,12 @@ row2 <- c(ass1, paste("White test pvalue is ", white$p.value))
 ```
 
 ```{r include=TRUE}
-fitted = xts(eg_correction$fitted.values, 
+fitted = xts(eg_correction$fitted.values,
              order.by = as.Date(names(eg_correction$fitted.values)))
 
 colnames(fitted) <- "Fitted"
 
-ggplot() +
-  geom_line(mapping = aes(x=index(fitted), y = wti),
-            data = eg_correction$model, color = 'red', alpha = 0.2) +
-  geom_line(mapping = aes(x=index(fitted), y = Fitted),
-            data = fitted, color = 'blue', alpha = 0.2) +
-  geom_line(mapping = aes(x=index(fitted), y = eg_correction$residuals),
-            alpha = 0.5)
+
 ```
 
 
@@ -269,9 +263,9 @@ index(new_predictions) <- as.Date(index(new_predictions))
 actual_diff <- diff.xts(p_tib[,1:2])['2015-07-15/']
 
 ggplot() +
-  geom_line(mapping = aes(x=index(new_predictions), y=brent.d), color = "red", 
+  geom_line(mapping = aes(x=index(new_predictions), y=brent.d), color = "red",
             data = new_predictions) +
-  geom_line(mapping = aes(x=index(actual_diff), y=brent), 
+  geom_line(mapping = aes(x=index(actual_diff), y=brent),
             data = actual_diff)
 ```
 
@@ -280,5 +274,152 @@ ggplot() +
 
 
 \pagebreak
+
+
+# Trading Strategies
+
+```{r}
+# Cointegrated via Engle-Granger
+spread <- (p_tib$wti.l1 - eg_coef[2]*p_tib$brent.l1)/eg_coef[3]
+res <- na.omit(lag(eg$residuals))
+res2 <- eg$coefficients[1] + eg$coefficients[2]*p_tib$brent
+res3 <-
+autoplot(spread)
+
+ggplot() +
+    geom_histogram(mapping = aes(res), bins = 500)
+```
+
+Using the cointegrating vectors determined in Section 3.4, the Engle-Granger error correction model is now restated as a stationary process, disregarding the insignificant intercept.
+
+$$\dfrac{\Delta \text{wti}_t - \beta_1 \Delta \text{brent}_t} {\beta_2} = \hat{\epsilon}_{t-1} $$
+
+This equation restates $\hat{ \epsilon }$ as a stationary pr
+
+```{r}
+autoplot(spread)
+```
+
+
+
+# Johansen Cointegration
+
+```{r}
+joc@V
+```
+
+```{r}
+make_cointegrated <- function() {
+  y = p_tib$wti.l1
+  x = p_tib$brent.l1
+
+  if( dim(joc@V)[1] > 2) {
+    const = joc@V[3,1]
+  } else {
+    const = 0
+  }
+
+  y_val = joc@V[1,1]
+  x_val = joc@V[2,1]
+
+  coint = y*y_val + x*x_val + const
+  return(coint)
+}
+
+spread_jo <- make_cointegrated()
+autoplot(spread_jo)
+```
+
+```{r}
+error_jo <- spread_jo - mean(spread_jo)
+trade_jo <- sd(spread_jo) - mean(spread_jo)
+
+close_position <- function() {
+  return(0)
+}
+
+trade_determine <- function(df, stdevs=1, cash = 1000, scale = 1) {
+  y = df$wti
+  x = df$brent
+
+  if( dim(joc@V)[1] > 2) {
+    const = joc@V[3,1]
+  } else {
+    const = 0
+  }
+
+  y_val = joc@V[1,1]
+  x_val = joc@V[2,1]
+
+  coint = y*y_val + x*x_val + const
+  colnames(coint) <- "spread"
+
+  error <- spread_jo - mean(spread_jo)
+  threshold <- stdevs*(sd(spread_jo) - mean(spread_jo))
+
+  coint$long_wti <- coint$spread < -threshold
+  coint$long_brent <- coint$spread > threshold
+
+  coint$position_wti <- 0
+  coint$position_brent <- 0
+
+  for(i in 1:dim(coint)[1]){
+    # There's two possible choices for each asset -
+    # 1. We are long the asset we're supposed to be, so buy more.
+    # 2. We are short when we're supposed to be long, so buy enough to make
+    #    portfolio holdings the beginning of the holding, i.e. 1 for wti
+    #    or 0.85 or whatever for Brent.
+
+
+    # If we're supposed to be long WTI, do this:
+    if(coint$long_wti[i] == 1) {
+      # If we are supposed to be long WTI and we're already long, buy more.
+      if(sign(coint$position_wti[i-1]) >= 0) {
+
+        coint$position_wti[i] <- coint$position_wti[i-1] + 1*scale
+        coint$position_brent[i] <- coint$position_brent[i-1] + x_val*scale
+      }
+
+      # Otherwise, we need to buy enough to make our holdings long.
+      if(sign(coint$position_wti[i-1]) == -1) {
+        
+      }
+
+    }
+
+    # If we're supposed to be long Brent, do this.
+    if(coint$long_brent[i] == 1) {
+      if(sign(coint$position_brent[i-1]) != -1) {
+        coint$position_wti[i] <- coint$position_wti[i-1] - 1*scale
+        coint$position_brent[i] <- coint$position_brent[i-1] - x_val*scale
+      }
+    }
+  }
+
+  # Calculate portfolio value
+  coint$wti_value <- coint$position_wti*y
+  coint$brent_value <- coint$position_brent*(x*-x_val)
+  coint$portfolio_value <- coint$wti_value + coint$brent_value
+
+  # Calculate change in value
+  coint$wti_delta <- diff.xts(coint$wti_value)
+  coint$brent_delta <- diff.xts(coint$brent_value)
+
+  # Calculate returns
+  coint$brent_returns <- diff.xts(coint$brent_value)/lag.xts(coint$brent_value)
+  coint$wti_returns <- diff.xts(coint$wti_value)/lag.xts(coint$wti_value)
+  coint$portfolio_returns <- coint$wti_returns - coint$brent_returns
+
+  return(coint)
+}
+
+trades <- trade_determine(price,0.5)
+summary(trades)
+```
+
+```{r}
+head(trades['2008-01-01/'])
+```
+
 
 # References
