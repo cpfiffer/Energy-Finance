@@ -334,92 +334,53 @@ autoplot(spread_jo)
 error_jo <- spread_jo - mean(spread_jo)
 trade_jo <- sd(spread_jo) - mean(spread_jo)
 
-close_position <- function() {
-  return(0)
-}
+#source('C:/Users/cpfif/Documents/R/Energy Finance/Data/tradefunction.R')
 
-trade_determine <- function(df, stdevs=1, cash = 1000, scale = 1) {
-  y = df$wti
-  x = df$brent
-
-  if( dim(joc@V)[1] > 2) {
-    const = joc@V[3,1]
-  } else {
-    const = 0
-  }
-
-  y_val = joc@V[1,1]
-  x_val = joc@V[2,1]
-
-  coint = y*y_val + x*x_val + const
-  colnames(coint) <- "spread"
-
-  error <- spread_jo - mean(spread_jo)
-  threshold <- stdevs*(sd(spread_jo) - mean(spread_jo))
-
-  coint$long_wti <- coint$spread < -threshold
-  coint$long_brent <- coint$spread > threshold
-
-  coint$position_wti <- 0
-  coint$position_brent <- 0
-
-  for(i in 1:dim(coint)[1]){
-    # There's two possible choices for each asset -
-    # 1. We are long the asset we're supposed to be, so buy more.
-    # 2. We are short when we're supposed to be long, so buy enough to make
-    #    portfolio holdings the beginning of the holding, i.e. 1 for wti
-    #    or 0.85 or whatever for Brent.
-
-
-    # If we're supposed to be long WTI, do this:
-    if(coint$long_wti[i] == 1) {
-      # If we are supposed to be long WTI and we're already long, buy more.
-      if(sign(coint$position_wti[i-1]) >= 0) {
-
-        coint$position_wti[i] <- coint$position_wti[i-1] + 1*scale
-        coint$position_brent[i] <- coint$position_brent[i-1] + x_val*scale
-      }
-
-      # Otherwise, we need to buy enough to make our holdings long.
-      if(sign(coint$position_wti[i-1]) == -1) {
-        
-      }
-
-    }
-
-    # If we're supposed to be long Brent, do this.
-    if(coint$long_brent[i] == 1) {
-      if(sign(coint$position_brent[i-1]) != -1) {
-        coint$position_wti[i] <- coint$position_wti[i-1] - 1*scale
-        coint$position_brent[i] <- coint$position_brent[i-1] - x_val*scale
-      }
-    }
-  }
-
-  # Calculate portfolio value
-  coint$wti_value <- coint$position_wti*y
-  coint$brent_value <- coint$position_brent*(x*-x_val)
-  coint$portfolio_value <- coint$wti_value + coint$brent_value
-
-  # Calculate change in value
-  coint$wti_delta <- diff.xts(coint$wti_value)
-  coint$brent_delta <- diff.xts(coint$brent_value)
-
-  # Calculate returns
-  coint$brent_returns <- diff.xts(coint$brent_value)/lag.xts(coint$brent_value)
-  coint$wti_returns <- diff.xts(coint$wti_value)/lag.xts(coint$wti_value)
-  coint$portfolio_returns <- coint$wti_returns - coint$brent_returns
-
-  return(coint)
-}
-
-trades <- trade_determine(price,0.5)
-summary(trades)
+#trades <- trade_determine(price, 0.5, 10000)
+#summary(trades)
 ```
 
 ```{r}
-head(trades['2008-01-01/'])
+head(trades['2007-01-01/'], 15)
 ```
+
+# Misc Plots
+
+```{r}
+# Plotting position in brent in relation to price
+ggplot() +
+  geom_line(mapping = aes(index(price), price$brent)) +
+  geom_line(mapping = aes(index(price), trades$position_brent))
+```
+
+```{r}
+# Plotting held positions
+ggplot() +
+  geom_line(mapping = aes(index(price), trades$position_brent), color = 'red') + 
+  geom_line(mapping = aes(index(price), trades$position_wti), color = 'blue')
+```
+
+```{r}
+# Plotting position in brent in relation to price
+ggplot() +
+  geom_line(mapping = aes(index(price), trades$spread)) +
+  geom_line(mapping = aes(index(price), trades$position_brent))
+```
+
+
+
+
+```{r}
+ggplot() +
+  geom_line(mapping = aes(index(price), (price$brent-price$wti))) +
+  geom_line(mapping = aes(index(price), (price$brent*joc@V[2,1] + price$wti)), color = 'red')
+
+```
+
+
+
+
+
 
 
 # References
