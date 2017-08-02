@@ -29,6 +29,12 @@ create_xts <- function(df) {
   df <- xts(df$price, df$date)
   return(df)
 }
+
+create_xts2 <- function(df) {
+  # Use for bid/ask datasets
+  df <- xts(df[,2:3], order.by=df$date)
+  return(df)
+}
 ```
 
 \pagebreak
@@ -57,7 +63,7 @@ Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum t
 
 ## Data
 
-The data used are daily close bid, ask, and midpoint prices for Dated Brent FOB and West Texas Intermediate FOB between January 1st, 1995 and July 14th, 2017, composing a total of 5,571 observations. Days when prices for either security was not available are removed, so that only days when both securities are traded are used. Furthermore, the data is segmented into two parts; a modeling set and a testing set. The cointegrating relationships are estimated using data between January 1st, 1995 and July 14th, 2015. The remaining two years of data is used to evaluate the trading strategy using the cointegrating vectors found in the preceding period.
+The data used are daily close bid, ask, and midpoint prices for Dated Brent FOB and West Texas Intermediate FOB between January 1st, 1995 and July 14th, 2017, composing a total of 5,571 observations. Days when prices for either security was not available are removed, so that only days when both securities are traded are used. Furthermore, the data is segmented into two parts; an in-sample and out-of-sample set. The cointegrating relationships, trading strategy, and other estimates are performed on the in-sample data between January 1st, 1995 and July 14th, 2015. The remaining two years of data is used to evaluate the trading strategy using the cointegrating vectors found in the preceding period.
 
 ```{r include=FALSE}
 # Data import, cleaning, consolidation.
@@ -69,21 +75,22 @@ wti <- read_csv("../raw/WTI.csv")
 wti$date <- parse_date(wti$date, "%d/%m/%Y")
 wti <- create_xts(wti)
 
-brent_spread <- read_csv("../raw/BFObidask-daily.csv")
-brent_spread$date <- parse_date(brent_spread$date, "%m/%d/%Y")
-brent_spread <- xts(brent_spread[,2:3], brent_spread$date)
-brent_spread$spread <- brent_spread$ask - brent_spread$bid
+# Now we import bid/ask spreads and some other stuff.
+bidask_brent <- read_csv("../raw/BFObidask-daily.csv")
+bidask_brent$date <- parse_date(bidask_brent$date, "%m/%d/%Y")
+bidask_brent <- create_xts2(bidask_brent)
+bidask_brent$spread <- bidask_brent$ask - bidask_brent$bid
 
-wti_spread <- read_csv("../raw/WTIbidask-daily.csv")
-wti_spread$date <- parse_date(wti_spread$date, "%m/%d/%Y")
-wti_spread <- xts(wti_spread[,2:3], wti_spread$date)
-wti_spread$spread <- wti_spread$ask - wti_spread$bid
+bidask_wti <- read_csv("../raw/WTIbidask-daily.csv")
+bidask_wti$date <- parse_date(bidask_wti$date, "%m/%d/%Y")
+bidask_wti <- create_xts2(bidask_wti)
+bidask_wti$spread <- bidask_wti$ask-bidask_wti$bid
 
-spread <- na.omit(merge(wti_spread, brent_spread))
-colnames(spread) <- c("w.ask", "w.bid", "w.spread",
+bidask_spread <- merge(bidask_wti, bidask_brent)
+colnames(bidask_spread) <- c("w.ask", "w.bid", "w.spread",
                       "b.ask", "b.bid", "b.spread")
 
-price <- na.omit(merge(wti, brent))
+price <- na.omit(merge(wti, brent, bidask_spread))
 
 # Format total dataframe in OLS format
 p_tib <- as_tibble(price)
@@ -101,9 +108,12 @@ p_tib <- xts(p_tib, order.by = index(price))["1995/"]
 test_set <- price["2015-07-15/"]
 # Remove mismatched time series and remove NA
 price <- price["1995/2015-07-14"]
-
 ```
 
+```{r messages=FALSE}
+
+
+```
 
 
 ## Lag Length Selection
@@ -234,43 +244,10 @@ colnames(fitted) <- "Fitted"
 
 
 ```{r}
-joc <- ca.jo(price, type = 'eigen', ecdet = 'const',
+joc <- ca.jo(price[,1:2], type = 'eigen', ecdet = 'const',
                   K = 2, spec = 'transitory')
 summary(joc)
 ```
-
-```{r}
-# Turn Johansen into an OLS equation, plot results
-jocols <- cajools(joc)
-```
-
-
-```{r}
-# Graph the spread
-range = '2005/'
-autoplot(price$brent[range] - price$wti[range]) +
-  ylab("Spread") +
-  ggtitle("Brent/WTI Spread")
-```
-
-
-## Predicting the test set
-
-```{r}
-new_predictions <- as_xts(predict(jocols, newdata = p_tib['2015-07-15/']))
-index(new_predictions) <- as.Date(index(new_predictions))
-
-actual_diff <- diff.xts(p_tib[,1:2])['2015-07-15/']
-
-ggplot() +
-  geom_line(mapping = aes(x=index(new_predictions), y=brent.d), color = "red",
-            data = new_predictions) +
-  geom_line(mapping = aes(x=index(actual_diff), y=brent),
-            data = actual_diff)
-```
-
-
-
 
 
 \pagebreak
@@ -278,37 +255,28 @@ ggplot() +
 
 # Trading Strategies
 
-```{r}
-# Cointegrated via Engle-Granger
-spread <- (p_tib$wti.l1 - eg_coef[2]*p_tib$brent.l1)/eg_coef[3]
-res <- na.omit(lag(eg$residuals))
-res2 <- eg$coefficients[1] + eg$coefficients[2]*p_tib$brent
-res3 <-
-autoplot(spread)
+The overview of the trading strategy is that it follows several simple steps.
 
-ggplot() +
-    geom_histogram(mapping = aes(res), bins = 500)
-```
+1. Calculate a stationary series using a given cointegrating vector.
+2. Take an appropriate long/short position when the spread is outside a threshold.
+3. Close out position when the spread reaches the opposite threshold.
+4. Repeat until end of series, and then close out positions.
 
-Using the cointegrating vectors determined in Section 3.4, the Engle-Granger error correction model is now restated as a stationary process, disregarding the insignificant intercept.
+Using the Johansen test's cointegrating vector, a spread variable is created by calculating the below equation:
 
-$$\dfrac{\Delta \text{wti}_t - \beta_1 \Delta \text{brent}_t} {\beta_2} = \hat{\epsilon}_{t-1} $$
+$$\text{spread}_t =\alpha+ \text{wti}_t-\beta _1\text{brent}_t$$
 
-This equation restates $\hat{ \epsilon }$ as a stationary pr
+Using the cointegrating vector found previously:
 
-```{r}
-autoplot(spread)
-```
+$$\text{spread}_t =-5.425+ \text{wti}_t-0.873\text{brent}_t$$
 
-
-
-# Johansen Cointegration
+Where $\text{spread}_t$ is the stationary series created by an intercept ($\alpha$), the price of WTI at time $t$, and the price of Brent at time $t$ multiplied by a cointegrating coefficient ($\beta$). Figure \@ref(fig:stationary-series) plots this series for the entire data set. A threshold is then utilized as in Dunis et al. [-@doi:10.1080/09603100500426432], whereby WTI is purchased and Brent is sold if the spread is below the negative threshold (long the spread) or the opposite if the spread is above the positive threshold. 
 
 ```{r}
 joc@V
 ```
 
-```{r}
+```{r stationary-series, include=TRUE, fig.cap="Cointegrated Series of WTI and Brent"}
 make_cointegrated <- function() {
   y = p_tib$wti.l1
   x = p_tib$brent.l1
@@ -327,54 +295,31 @@ make_cointegrated <- function() {
 }
 
 spread_jo <- make_cointegrated()
-autoplot(spread_jo)
+ggplot() +
+  geom_line(mapping=aes(index(spread_jo), 1), color = 'lightblue', size=1) +
+  geom_line(mapping=aes(index(spread_jo), -1), color='lightblue', size=1) +
+  geom_line(mapping=aes(index(spread_jo), spread_jo)) +
+  xlab("Date") +
+  ylab("Spread") +
+  theme_minimal()
 ```
 
-```{r}
+Using this series, 
+
+```{r cache=TRUE, eval=FALSE}
 error_jo <- spread_jo - mean(spread_jo)
 trade_jo <- sd(spread_jo) - mean(spread_jo)
 
-#source('C:/Users/cpfif/Documents/R/Energy Finance/Data/tradefunction.R')
+source('C:/Users/cpfif/Documents/R/Energy Finance/Data/tradefunction2.R')
 
-#trades <- trade_determine(price, 0.5, 10000)
-#summary(trades)
-```
-
-```{r}
-head(trades['2007-01-01/'], 15)
-```
-
-# Misc Plots
-
-```{r}
-# Plotting position in brent in relation to price
-ggplot() +
-  geom_line(mapping = aes(index(price), price$brent)) +
-  geom_line(mapping = aes(index(price), trades$position_brent))
-```
-
-```{r}
-# Plotting held positions
-ggplot() +
-  geom_line(mapping = aes(index(price), trades$position_brent), color = 'red') + 
-  geom_line(mapping = aes(index(price), trades$position_wti), color = 'blue')
-```
-
-```{r}
-# Plotting position in brent in relation to price
-ggplot() +
-  geom_line(mapping = aes(index(price), trades$spread)) +
-  geom_line(mapping = aes(index(price), trades$position_brent))
+trades <- trade_determine2(price, 1, 100000, 1000) 
 ```
 
 
+# Out of sample test
 
-
-```{r}
-ggplot() +
-  geom_line(mapping = aes(index(price), (price$brent-price$wti))) +
-  geom_line(mapping = aes(index(price), (price$brent*joc@V[2,1] + price$wti)), color = 'red')
-
+```{r eval=FALSE}
+oos <- trade_determine2(test_set, 1, 100000, 10) 
 ```
 
 
