@@ -4,3 +4,7 @@
 "0","library(urca)"
 "0","library(tseries)"
 "0","library(tidyquant)"
+"0","library(pander)"
+"0","library(feather)"
+"0","library(extrafont)"
+"0","options(scipen=8)"

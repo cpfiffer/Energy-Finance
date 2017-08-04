@@ -1,4 +1,10 @@
 base
+methods
+datasets
+utils
+grDevices
+graphics
+stats
 tidyverse
 ggplot2
 tibble
@@ -15,11 +21,11 @@ PerformanceAnalytics
 TTR
 quantmod
 tidyquant
+pander
+feather
+extrafont
 MASS
 sandwich
 strucchange
 lmtest
 vars
-pander
-feather
-extrafont

@@ -1,13 +1,19 @@
 ---
 title: "Cointegration in Crude Prices"
+subtitle: "Trading strategies to take advantage of a long-term equilibrium relationship between Brent and WTI."
 author: "Cameron Pfiffer"
-date: "July 17, 2017"
+date: "August 2017"
+header-includes:
+   - \usepackage{float}
 output:
   bookdown::pdf_document2:
     latex_engine: xelatex
 csl: harvard.csl
 bibliography: bibliography.bibtex
 ---
+
+\fontsize{12}{16}
+\selectfont
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, include=FALSE,
@@ -21,6 +27,10 @@ library(xts)
 library(urca)
 library(tseries)
 library(tidyquant)
+library(pander)
+library(feather)
+library(extrafont)
+options(scipen=8)
 ```
 
 ```{r include=FALSE}
@@ -40,30 +50,29 @@ create_xts2 <- function(df) {
 \pagebreak
 
 # Introduction
-Determining whether global oil markets are cointegrated is an important question, as doing so would allow a market participant to formulate trading strategies in cases where short-term relationships break down. It makes economic sense for the two oil grades to be cointegrated -- they are essentially substitutes, with similar specific gravities and sulfur content. Indeed, Adelman [-@10.2307/41321691] claimed that "The world oil market, like the world ocean, is one great pool." This study reviews existing literature, examines the statistical relationship between Brent crude and West Texas Intermediate (WTI) crude, and proposes a trading strategy based on cointegration between the two securities.
+Are Brent and West Texas Intermediate (WTI) crude oils co-integrated? An economic case could be made for the two oil grades to be co-integrated -- they are essentially substitutes, with similar specific gravities and sulfur content. Indeed, Adelman [-@10.2307/41321691] famously claimed that "The world oil market, like the world ocean, is one great pool." This study reviews existing literature, examines the statistical relationship between Brent crude and WTI crude, proposes a trading strategy based on co-integration between the two securities, and concludes with a discussion of findings and areas of further study.
 
 # Literature Review
 
 ## Cointegration
-Cointegration as a concept was first introduced by Granger [-@granger1981some], and later expanded upon to include methodology for testing cointegration [@engle1987co]. The theory states that non-stationary series integrated of the same order may have a cointegrating vector that reduces the resulting series to a stationary process, in which case the series are said to be _cointegrated_. Assets linked by a fundamental relationship have cause to be cointegrated, and the crude oil markets are no exception. WTI and Brent crudes are both highly similar commodities, with proximate specific gravities and sulfur contents. It makes sense that two nearly fungible assets would trade at similar levels, ignoring cost of carry and transit costs. Johansen [-@10.2307/2938278] later expanded upon the Engle-Granger methodology to expand to multivariate cointegrating relationships, and offered a solution to the issue of declaring one variable dependent on the other. This paper uses both methodologies to test for cointegration.
+Co-integration as a concept was first introduced by Granger [-@granger1981some], and later expanded upon to include methodology for testing co-integration [@engle1987co]. The theory states that non-stationary series integrated of the same order may have a co-integrating vector that reduces the resulting series to a stationary process, in which case the series are said to be _cointegrated_. Assets linked by a fundamental relationship (such as being substitutes) have cause to be co-integrated, and the crude oil markets are no exception. WTI and Brent crudes are both highly similar commodities, with proximate specific gravity and sulfur content. It makes sense that two nearly fungible assets would be linked in a fundamental way, ignoring cost of carry and transit costs. Johansen [-@10.2307/2938278] later expanded upon the Engle-Granger methodology to expand to multivariate co-integrating relationships, and offered a solution to several issues that arise from the Engle-Granger approach.
 
-There are consistent findings amongst academics that WTI and Brent are cointegrated, and that oil levels are $I(1)$, but stationary in first differences, consistent with expectations. Hammoudeh et al. [-@showkat08] found cointegrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar cointegrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of cointegration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies.
+There are consistent findings among academics that WTI and Brent are co-integrated. Hammoudeh et al. [-@showkat08] found co-integrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar co-integrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of co-integration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies.
 
-[^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is highly important for trading strategies, though for simplicity, the cointegrating relationship between Brent and WTI is assumed to be symmetric.
+[^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is highly important for trading strategies, though for simplicity, the co-integrating relationship between Brent and WTI used in the trading strategies that follow is assumed to be symmetric.
 
 ## Trading Strategy and Transaction Costs
-Developing a trading strategy to requires the awareness of several key facts. First, in a world absent transaction costs, any deviation from the mean should spur immediate mean reversion no matter how small, as noted by Balke and Famby [-@10.2307/2527284]. However, as we do not live in a world absent transaction costs and this is an empirical study (and thus subject to the whims of reality), an appropriate transaction cost must be assumed to evaluate the profitability of any trade. In this study, transaction costs are included by construction, as the trading simulation assumes that all purchases are make on the ask and all sales made on the bid. This is an overly simplified assumption, as this merely accounts for explicit transaction costs, and not implicit costs such as opportunity cost and market impact, among others[^tca].
 
-[^tca]: See Almgren and Chriss [-@almgren2001optimal] and Kissel [-@kissell2006expanded] for expanded transaction cost analysis methods.
+Developing a trading strategy to requires the awareness of several key facts. First, in a world absent transaction costs, any deviation from the mean should spur immediate mean reversion no matter how small, as noted by Balke and Famby [-@10.2307/2527284]. However, as we do not live in a world absent transaction costs and this is an empirical study (and thus subject to the whims of reality), and appropriate transaction cost must be assumed to evaluate the profitability of any trade. In this study, transaction costs are included by construction, as the trading simulation assumes that all purchases are make on the ask and all sales made on the bid. This is an overly simplified assumption, as this merely accounts for explicit transaction costs, and not implicit costs such as opportunity cost and market impact, among others.
 
-Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in cointegrated equities. Given that integrated series cross the mean frequently, the authors note that there are two general outcomes; first, that the spread between assets might continue away from the mean due to momentum; second, that an asset will revert towards the mean. They find Sharpe ratios of approximately 0.90 for the momentum strategy, and 0.59 for the contrarian strategy, though it should be noted that the contrarian strategy had far higher average returns, 10.69% versus the momentum strategy's 6.46%.
+Dunis et al. [-@doi:10.1080/09603100500426432] forms the primary inspiration for the trading strategies employed below. They designed strategies that trade when the co-integrated spread between Brent and WTI was larger or smaller than a given threshold, a methodology expanded upon in this paper. Other authors, such as Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in co-integrated equities. They find Sharpe ratios of approximately 0.90 for a momentum strategy, and 0.59 for a contrarian strategy. The results presented below following demonstrate moderately more subdued returns, though results are in line with expectations.
 
-
-# Statistical Tests
+# Data and Statistical Tests
 
 ## Data
 
-The data used are daily close bid, ask, and midpoint prices for Dated Brent FOB and West Texas Intermediate FOB between January 1st, 1995 and July 14th, 2017, composing a total of 5,571 observations. Days when prices for either security was not available are removed, so that only days when both securities are traded are used. Furthermore, the data is segmented into two parts; an in-sample and out-of-sample set. The cointegrating relationships, trading strategy, and other estimates are performed on the in-sample data between January 1st, 1995 and July 14th, 2015. The remaining two years of data is used to evaluate the trading strategy using the cointegrating vectors found in the preceding period.
+The data used are daily close bid, ask, and midpoint prices for Dated Brent FOB and West Texas Intermediate FOB between January 1st, 1995 and July 14th, 2017, composing a total of 5,571 observations. Days when prices for either security was not available are removed, so that only days when both securities are traded are used. Furthermore, the data is segmented into two parts; an in-sample and out-of-sample set. The co-integrating relationships, threshold optimization, and model estimates are performed on the in-sample data between January 1st, 1995 and July 14th, 2015. The remaining two years (July 15th, 2015 through July 14th, 2017) of data is used to evaluate the trading strategy using the co-integrating vectors found in the preceding period. The bid and ask prices are used to determine the closing bid ask spread for an approximation of transaction costs.
+
 
 ```{r include=FALSE}
 # Data import, cleaning, consolidation.
@@ -111,34 +120,63 @@ price <- price["1995/2015-07-14"]
 ```
 
 ```{r messages=FALSE}
+# Process benchmark data
+snp <- read_csv("../raw/snp.csv")
+snp$date <- as.Date(snp$date, "%m/%d/%Y")
+snp <- xts(snp$snp, order.by = snp$date)
+colnames(snp) <- "snp"
+snp2 <- snp["2015-07-15/"]
+snp <- snp["1995/2015-07-14"]
 
+snp$portfolio_returns <- (snp$snp-lag(snp$snp))/lag.xts(snp$snp)
+snp$log_returns <- log(snp$snp/lag.xts(snp$snp))
+snp$portfolio_value <- (snp$snp * 217.813) #100000/first snp price
+snp$portfolio_value[[1]] <- 100000
 
+snp2$portfolio_returns <- (snp2$snp-lag(snp2$snp))/lag.xts(snp2$snp)
+snp2$log_returns <- log(snp2$snp/lag.xts(snp2$snp))
+snp2$portfolio_value <- (snp2$snp * 47.45184) #100000/first snp price
+snp2$portfolio_value[[1]] <- 100000
+
+# Process RF data
+risk_free <- read_csv("../raw/askyield.csv")
+risk_free$date <- as.Date(risk_free$date, "%m/%d/%Y")
+risk_free <- xts(risk_free$askyield, order.by = risk_free$date)
+colnames(risk_free) <- "askyield"
+risk_free$daily <- log(((1+risk_free$askyield/100))^(1/250))
 ```
+
+Additional data includes S&P 500 prices for the same period in order to compare the algorithm to a benchmark. The bid yield of US Treasury 1 year bonds are converted to daily interest rates to determine excess returns.
 
 
 ## Lag Length Selection
 
-It has been noted that lag length selection can have important effects on a VAR model's impulse response and variance decompositions [@66e755df06db415c83234a6bbc768a39], and Brooks [-@brooks2014introductory] notes that Johansen tests and Augmented Dickey-Fuller tests can be sucestible to improper lag selection. Thus, we select a lag length that creates produces the most parsimonious model, i.e., the smallest lag length. The `vars` package for R [@pfaff2013package] contains a built in function for multivariate information criterion. Table \@ref(tab:ic) presents the lag lengths suggested by four information criteria tests. The Schwarz criterion suggests a lag length of 2.
+It has been shown that lag length selection can have important effects on a VAR model's impulse response and variance decomposition[^var] [@66e755df06db415c83234a6bbc768a39], and Brooks [-@brooks2014introductory] notes that Johansen tests and Augmented Dickey-Fuller tests can be susceptible to improper lag selection. Thus, we select a lag length that creates produces the most parsimonious model, i.e., the smallest lag length. The `vars` package for R [@pfaff2013package] contains a built in function for multivariate information criterion. Table \@ref(tab:ic) presents the lag lengths suggested by four information criteria tests. All criteria suggest a lag length of 5, and this is used for further tests. A procedure evaluating the results from the Johansen test and the ADF test demonstrate that the same results are found using lags up to 60, at which point further testing is beyond reason, and we can be highly certain that the results are appropriate. 
+
+[^var]: This paper presents neither form of VAR analysis, as it is primarily concerned with the co-integrating vector given by the Johansen test, though it is good practice regardless to select appropriate lag lengths.
+
 
 ```{r}
 library(vars)
 lag_length <- VARselect(price, type = 'const')
-ll_table <- data.frame(lag_length$selection)
+ll_table <- data.frame(lag_length$selection[-4])
+ll_table
 ```
 
 ```{r ic,include=TRUE}
 knitr::kable(ll_table, col.names = "Lag Length", caption = "Information Criteria Lag Length", format = 'pandoc')
 ```
 
+
 ## Stationarity
 
-The first step in determining whether two assets are cointegrated is to find whether they are both $I(0)$. It is important to find unit roots in the levels of each potentially cointegrated series -- if only one of two series is $I(1)$ and the other is $I(0)$, there can be no cointegrting vector and no inferences about the long term relationship between the two assets can be made.
+The first step in determining whether two assets are co-integrated is to find whether they are both $I(0)$. It is important to find unit roots in the levels of each potentially co-integrated series -- if only one of two series is $I(1)$ and the other is $I(0)$, there can be no co-integrating vector and no inferences about the long term relationship between the two assets can be made.
 
-Table \@ref(tab:adfsummary) presents summary statistics for each series using lag $k=2$, with the results clearly showing unit roots in both series. This is the expected result; few would look at a pricing chart and state that it is stationary.
+Table \@ref(tab:adfsummary) presents summary statistics for each series using lag $k=5$, with the results clearly showing unit roots in both series. This is the expected result for a series of prices, though it now remains to be seen if they can be co-integrated.
 
 ```{r}
-wti_adf <- adf.test(price$wti, k=2)
-brent_adf <- adf.test(price$brent, k=2)
+wti_adf <- adf.test(price$wti, k=5)
+brent_adf <- adf.test(price$brent, k=5)
 
 summarise_adf <- function(adf) {
   adf_sum <- c(adf$statistic, adf$p.value)
@@ -161,27 +199,12 @@ knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary",
 
 ## Testing for Cointegration
 
-Two common methodologies in testing for cointegration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is simple, though it suffers from some issues that cannot be solved by large sample sizes. First, hypothesis testing about the cointegrating relationship cannot be performed using the stage 1 regression, though for the purposes of this study, this is not a large issue. The goal here is to describe the relationship, not evaluate a prior expectation or challenge a thesis. The second problem is that there may be multiple cointegrating relationships due to multiple variables, though, again, this is not an issue as we are only testing two variables. Thus, the Engle-Granger method is sufficient for explaining the relaitonship between the two series.
-
-The Johansen test is used primarily as an educational exercise, and to compare results of the cointegrating relationship. As the primary purpose of generating the cointegrating series is to forecast returns to the mean and not simply to explain movements in a series, the Engle-Granger method is perhaps less appropriate. ===================
-
-
-The results for the Engle-Granger method are as follows. The first step involves estimating a model of the form:
-
-$$\text{wti}_t =\alpha + \beta_1 \text{brent}_t + \epsilon_t$$
-
-Next, a unit root test is run on the $\epsilon$ term to determine that it is stationary. If the null hypothesis of stationarity is rejected, the residuals are stationary, and thus WTI and Brent are cointegrated. The residuals are then used in the error correction model below:
-
-$$\Delta \text{wti}_t=\alpha + \beta_1\Delta \text{brent}_t+\beta_2(\hat{\epsilon}_{t-1})+v_t$$
-
-Where $\hat{\epsilon}_{t-1}$ is the residuals estimated in the first step. The intuition for the model is fairly simple - once the cointegrating relationship ($\beta_1$) is estimated, the coefficient of the lagged error ($\beta_2$) represents the "speed" at which past errors are corrected. It should also be noted that an intercept ($\alpha$) is included in both the preceding equations, as there is little cause to exclude the intercept from the regression, and the intercept term is insignificant anyway. Thus, if $\hat{\epsilon}_{t-1}$ is large and $\beta_2$ is negative (as expected[^beta2]), there will be (on average) a revision towards the mean in the opposite direction of the error.  Table \@ref(tab:egsummary) displays the results of the residuals test, and Table \@ref(tab:egmodel) summarises the results of the error correction model.
-
-[^beta2]: It's highly unlikely that $\beta_2$ would ever be positive, as that represents an explosive process, and the process wouldn't be stationary.
+Two common methodologies in testing for co-integration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is simple, though it suffers from some issues that cannot be solved by large sample sizes. The Engle-Granger method is thus used only to confirm that the two series are cointegrated, while the Johansen test determines the cointegrating vector for the trading strategies. Both tests are evaluated with a constant in an effort to better account for high volatility periods in between 2008 and 2012. \autoref{egsummary} displays the results of the residuals test, and \autoref{egmodel} summarizes the results of the Engle-Granger error correction model. \autoref{joc-coef} and \autoref{p-vals} present the cointegrating vector found in the Johansen test and the relevant test statistics respectively.
 
 
 ```{r}
 eg <- lm(formula = (wti) ~ (brent), data = price)
-eg_adf <- adf.test(eg$residuals, k=2)
+eg_adf <- adf.test(eg$residuals, k=5)
 eg_dat <- data.frame(diff(price$wti), diff(price$brent), lag(eg$residuals))
 eg_correction <- lm(wti ~ brent + lag.eg.residuals.,
                     na.action = na.omit,data = eg_dat)
@@ -190,93 +213,76 @@ eg_correction <- lm(wti ~ brent + lag.eg.residuals.,
 
 epsilon <- data.frame(eg_adf$statistic, eg_adf$p.value)
 colnames(epsilon) <- c("Augmented Dickey-Fulley Statistic", "P Value")
-row.names(epsilon) <- "$\\epsilon$"
+row.names(epsilon) <- ""
 
 eg_summary <- summary(eg_correction)
 eg_coef <- eg_summary$coefficients
-row.names(eg_coef) <- c("Intercept ($\\alpha$)",
-                        "Brent ($\\beta_1$)",
-                        "Residuals ($\\epsilon$)")
+row.names(eg_coef) <- c("Intercept",
+                        "Brent",
+                        "Residuals")
 ```
 
-```{r egsummary, include=TRUE}
-knitr::kable(epsilon, caption = "Engle-Granger Residuals Test",
+```{r egsummary, include=TRUE, fig.cap="Engle-Granger Residuals Test"}
+pander(epsilon, caption = "\\label{egsummary}Engle-Granger Residuals Test",
              format = 'pandoc')
 ```
-
-
 
 
 ```{r egmodel, include=TRUE}
-knitr::kable(eg_coef, caption = "Engle-Granger Error Correction Model Summary",
+pander(eg_coef, caption = "\\label{egmodel}Engle-Granger Error Correction Model Summary",
              format = 'pandoc')
 ```
-
-As Table \@ref(tab:egmodel) demonstrates, the coefficients on the Brent is significant, as would be expected of a cointegrated relationship, and the coefficient on the residual is negative and significant.
-
-It's also important to note that, because the error correction model is estimated using OLS, ensuring that the assumptions of the estimator are not violated is worth a cursory check.
-
-
-```{r}
-# Test OLS stuff
-ass1 <- "$\\text{E}(\\epsilon_t)=0$"
-
-ass2 <- "$\\text{var}(u_t)=\\sigma^2 < \\infinity$"
-white <- white.test(as.ts(eg$residuals))
-
-ass3 <- "$\\text{cov}(u_t, u_j)=0$"
-ass4 <- "$\\text{cov}(u_t,x_t) = 0$"
-ass5 <- "$u_t ~ N(0, \\sigma^2)$"
-
-row1 <- c(ass1, paste("Residual mean is ", mean(eg$residuals)))
-row2 <- c(ass1, paste("White test pvalue is ", white$p.value))
-```
-
-```{r include=TRUE}
-fitted = xts(eg_correction$fitted.values,
-             order.by = as.Date(names(eg_correction$fitted.values)))
-
-colnames(fitted) <- "Fitted"
-
-
-```
-
 
 
 ```{r}
 joc <- ca.jo(price[,1:2], type = 'eigen', ecdet = 'const',
                   K = 2, spec = 'transitory')
-summary(joc)
 ```
 
 
-\pagebreak
+```{r joc-coef, include=TRUE, fig.cap="Johansen Cointegrating Vector"}
+# Present Johansen results
+o <- t(data.frame(joc@V[,1]))
+colnames(o) <- c("WTI",
+                 "Brent",
+                 "Constant")
+row.names(o) <- "Cointegrating Vector"
+pander(o, format='pandoc', caption = "\\label{joc-coef}Johansen Cointegration Vector")
+```
+
+```{r p-vals, include=TRUE}
+vals <- data.frame(joc@cval)
+vals$test <- joc@teststat
+colnames(vals) <- c("10%", "5%", "1%", "Test Statistic")
+rownames(vals) <- c("r <= 1", "r = 0")
+pander(vals, format='pandoc', caption = "\\label{p-vals}Johansen Test Statistics")
+
+```
+
+The results of these two tests both show that there is indeed a cointegrating vector between Brent and WTI prices. The Johansen test shows that the null hypothesis that there is no cointegrating vector is rejected at even the 1% level, and the ADF test from the Engle-Granger approach shows a similarly strong relationship.
 
 
-# Trading Strategies
 
-The overview of the trading strategy is that it follows several simple steps.
+# Results
+
+The overview the two trading strategies utilized is as follow:
 
 1. Calculate a stationary series using a given cointegrating vector.
 2. Take an appropriate long/short position when the spread is outside a threshold.
 3. Close out position when the spread reaches the opposite threshold.
 4. Repeat until end of series, and then close out positions.
 
-Using the Johansen test's cointegrating vector, a spread variable is created by calculating the below equation:
+Using the Johansen test's cointegrating vector from \autoref{joc-coef}, a spread variable is created by calculating the below equation:
 
-$$\text{spread}_t =\alpha+ \text{wti}_t-\beta _1\text{brent}_t$$
+$$\text{spread}_t =\text{wti}_t-\beta _1\text{brent}_t +\alpha$$
 
 Using the cointegrating vector found previously:
 
-$$\text{spread}_t =-5.425+ \text{wti}_t-0.873\text{brent}_t$$
+$$\text{spread}_t =\text{wti}_t-0.873\text{brent}_t-5.425$$
 
-Where $\text{spread}_t$ is the stationary series created by an intercept ($\alpha$), the price of WTI at time $t$, and the price of Brent at time $t$ multiplied by a cointegrating coefficient ($\beta$). Figure \@ref(fig:stationary-series) plots this series for the entire data set. A threshold is then utilized as in Dunis et al. [-@doi:10.1080/09603100500426432], whereby WTI is purchased and Brent is sold if the spread is below the negative threshold (long the spread) or the opposite if the spread is above the positive threshold. 
+Where $\text{spread}_t$ is the stationary series created by an intercept ($\alpha$), the price of WTI at time $t$, and the price of Brent at time $t$ multiplied by a cointegrating coefficient ($\beta_1$). Figure \@ref(fig:stationary-series) plots this series for the entire data set. A threshold is then utilized as in Dunis et al. [-@doi:10.1080/09603100500426432], whereby a signal to purchase WTI and sell Brent if the spread is below the negative threshold (long the spread) or the opposite (short the spread) if the spread is above the positive threshold. Figure \@ref(fig:stationary-series) also shows this threshold set at $\pm 0.3$ in dark blue. This threshold was selected by running an optimization problem through the trading algorithm to maximize Sharpe ratio in the in-sample period, and was averaged between the best threshold for the two strategies.
 
-```{r}
-joc@V
-```
-
-```{r stationary-series, include=TRUE, fig.cap="Cointegrated Series of WTI and Brent"}
+```{r stationary-series, include=TRUE, fig.cap="Cointegrated Series of WTI and Brent with Treshold"}
 make_cointegrated <- function() {
   y = p_tib$wti.l1
   x = p_tib$brent.l1
@@ -296,36 +302,156 @@ make_cointegrated <- function() {
 
 spread_jo <- make_cointegrated()
 ggplot() +
-  geom_line(mapping=aes(index(spread_jo), 1), color = 'lightblue', size=1) +
-  geom_line(mapping=aes(index(spread_jo), -1), color='lightblue', size=1) +
-  geom_line(mapping=aes(index(spread_jo), spread_jo)) +
+  geom_line(mapping=aes(index(spread_jo), 0.3), color = 'darkblue') +
+  geom_line(mapping=aes(index(spread_jo), -0.3), color='darkblue') +
+  geom_line(mapping=aes(index(spread_jo), spread_jo), size=0.01) +
   xlab("Date") +
   ylab("Spread") +
   theme_minimal()
 ```
 
-Using this series, 
+Two primary strategies are utilized under this threshold approach. The first, is the _accumulate position_ approach, because it purchases or sells 100 units of WTI and takes an opposite position in approximately 87 units of Brent (as given by the $\beta_1$ coefficient) for each day that the spread is outside the boundaries of the threshold. The second strategy, the _buy and hold_, purchases or sells 5,000 units of WTI and takes an opposite position in approximately 4,350 units of Brent, selling only when the spread reaches the opposite threshold from when the position was entered. Both strategies close out all positions at the end of the sample period. The bid/ask spread is assumed to be symmetric about the midpoint, and is accounted for in the strategy by impacting cash flows. For every transaction made the algorithm, half of the bid ask spread for the time of the trade per asset is is assessed to the cash flow. No other transaction costs, such as brokerage, commission, exchange fees, settlement, market impact, or other implicit costs are considered, and thus the portfolio return should be considered an overestimate. Portfolio returns are calculated by the mark-to-market sum of the position in Brent and WTI, and cash holdings. Standard deviation is calculated using a daily risk-free rate derived from the 1 year US Treasury bond midpoint yield. Tables \autoref{strategy-return-in} and \autoref{strategy-return-out} present summary statistics for the two strategies.
 
-```{r cache=TRUE, eval=FALSE}
+```{r cache=TRUE, eval=TRUE}
 error_jo <- spread_jo - mean(spread_jo)
 trade_jo <- sd(spread_jo) - mean(spread_jo)
 
 source('C:/Users/cpfif/Documents/R/Energy Finance/Data/tradefunction2.R')
 
-trades <- trade_determine2(price, 1, 100000, 1000) 
+# In sample
+buy_always <- trade_determine2(price, 0.3, 100000, 100)
+buy_hold <- buy_and_hold(price, 0.3, 100000, 5000)
+
+# Out of sample
+buy_always2 <- trade_determine2(test_set, 0.3, 100000, 100)
+buy_hold2 <- buy_and_hold(test_set, 0.3, 100000, 5000)
+
+#write.zoo(buy_always, "../raw/buy_always.csv", sep=',')
+#write.zoo(buy_hold, "../raw/buy_hold.csv", sep=',')
+#write.zoo(buy_always2, "../raw/buy_always2.csv", sep=',')
+#write.zoo(buy_hold2, "../raw/buy_hold2.csv", sep=',')
+```
+
+```{r strategy-return-in, include=TRUE}
+#source('C:/Users/cpfif/Documents/R/Energy Finance/Data/tradefunction2.R')
+#buy_always <- xts(read.csv.zoo("raw/buy_always.csv"))
+#buy_hold <- xts(read.csv.zoo("raw/buy_hold.csv"))
+#buy_always2 <- xts(read.csv.zoo("raw/buy_always2.csv"))
+#buy_hold2 <- xts(read.csv.zoo("raw/buy_hold2.csv"))
+
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+
+summarize_strategy <- function(df, threshold = 999, type="NA") {
+  start = df$portfolio_value[[1]]
+  terminal = df$portfolio_value[[dim(df)[1]]]
+  log_ret = log(terminal/start)
+  geomean = gm_mean(df$portfolio_returns)
+  smallest = min(df$portfolio_value)
+  largest = max(df$portfolio_value)
+  sharpe_ratio = sharp(df$portfolio_returns)
+
+  start=prettyNum(start,big.mark=',')
+
+  summary=data.frame(start, terminal, log_ret, geomean, smallest, sharpe_ratio)
+
+  return(summary)
+}
+
+ali <- summarize_strategy(buy_always, 0.3, type="Buy every day")
+hoi <- summarize_strategy(buy_hold, 0.3, type="Buy every day")
+ssi <- summarize_strategy(snp)
+
+summary_table <- rbind(ali,hoi, ssi)
+row.names(summary_table) <- c("Accumulate position",
+                              "Buy and hold",
+                              "S&P 500")
+colnames(summary_table) <- c("Initial Wealth",
+                             "Terminal Wealth",
+                             "Log Return",
+                             "Geometric Return",
+                             "Minimum Value",
+                             "Sharpe Ratio")
+
+set.alignment('right', row.names = 'left')
+pander(summary_table,
+       caption="\\label{strategy-return-in}Strategy Performance In Sample (January 1st, 1995-July 13th, 2015)",
+       format = 'pandoc',
+       style='multiline',
+       split.cells=10,
+       big.mark=',')
 ```
 
 
-# Out of sample test
 
-```{r eval=FALSE}
-oos <- trade_determine2(test_set, 1, 100000, 10) 
+```{r strategy-return-out, include=TRUE}
+alo <- summarize_strategy(buy_always2, 0.3, type="Buy every day")
+hoo <- summarize_strategy(buy_hold2, 0.3, type="Buy every day")
+sso <- summarize_strategy(snp2)
+summary_table <- rbind(alo,hoo, sso)
+row.names(summary_table) <- c("Accumulate position",
+                              "Buy and hold",
+                              "S&P 500")
+colnames(summary_table) <- c("Initial Wealth",
+                             "Terminal Wealth",
+                             "Log Return",
+                             "Geometric Return",
+                             "Minimum Value",
+                             "Sharpe Ratio")
+set.alignment('right', row.names = 'left')
+pander(summary_table,
+       caption="\\label{strategy-return-out}Strategy Performance Out of Sample (July 14th, 2015-July 14th, 2017)",
+       format = 'pandoc',
+       style='multiline',
+       split.cells=10,
+       big.mark=',')
 ```
 
 
+The results demonstrate that while the accumulate position portfolio had higher absolute returns (terminal wealth), it was significantly more volatile and has a smaller Sharpe ratio than the buy and hold portfolio. Both strategies outperformed buying and holding $100,000 worth of the S&P during the sample periods, in absolute terms and in risk-adjusted measures. The buy and hold strategy performed best overall in risk-adjusted measures and in absolute terms in the out-of-sample period. Figures \@ref(fig:insample-graph) and \@ref(fig:outsample-graph) both demonstrate the out performance in terms of portfolio value of the trading strategies as compared to an investment in the S&P 500.
 
 
+```{r insample-graph, fig.cap="In-sample Performance", include=TRUE, fig.height=2}
+ggplot() +
+  geom_line(mapping=aes(index(buy_always), buy_always$portfolio_value), color='orange') + 
+  geom_line(mapping=aes(index(buy_always), buy_hold$portfolio_value), color = 'darkblue') +
+  geom_line(mapping=aes(index(snp), snp$portfolio_value), color='black') +
+  scale_y_continuous(labels=scales::dollar_format()) +
+  theme_minimal() + 
+  xlab("Date") +
+  ylab("Portfolio Value") 
+```
+
+```{r outsample-graph, fig.cap="Out-of-sample Performance", include=TRUE, fig.height=2}
+ggplot() +
+  geom_line(mapping=aes(index(buy_always2), buy_always2$portfolio_value), color='orange') + 
+  geom_line(mapping=aes(index(buy_always2), buy_hold2$portfolio_value), color = 'darkblue') +
+  geom_line(mapping=aes(index(snp2), snp2$portfolio_value), color='black') +
+  scale_y_continuous(labels=scales::dollar_format()) +
+  theme_minimal() + 
+  xlab("Date") +
+  ylab("Portfolio Value")
+```
 
 
+# Discussion
+As the results in the previous section illustrate, it is possible to take advantage of the cointegrating relationship between two assets, though it is important to address several shortcomings in the strategies used. 
+
+First, a large portion of the cointegrating vector was estimated during an incredibly stable period for crude prices, and the long term relationship may have changed since what appears to be a structural break between 2008-2015. If this is the case, the relatively short out-of-sample testing period of two years may fail to capture the nature of the modified relationship and the strategy may go from consistently profitable to consistently loss taking.
+
+Second, the strategies fail to consider multiple elements of market microstructure, such as implicit transaction costs, brokerage fees, short selling fees, exchange fees, and other such costs that may affect the decision making process. It is also assumed that an asset can be transacted at the close price, both long and short, and ignores liquidity provisions and market impact. Such transaction costs cannot be so easily discounted, and can have out-sized effects on highly active strategies such as the accumulate position strategy, which made 4,792 trades in the test period as compared to the buy and hold strategy which only traded 182 times. It follows then that an implementation of this strategy in actual trading conditions would suffer dampened returns.
+
+Third, both the buy and hold and accumulate position strategies suffer from a scale problem - they often hold a large amount of cash and do not properly utilize all cash holdings. Assets are purchased as a fixed amount, and do not adapt to performance. This is less important than in a pure long-only strategy, as going long in one asset and short another often keeps net changes in cash very low. Utilizing more cash reserves and increasing purchasing scale would be similar to leveraging and magnifying returns and losses, and would allow the strategies to modulate the number of securities transacted to keep holdings in line with cash reserves. It may be more advantageous to purchase more assets the farther away from the spread one is, particularly for the accumulate position strategy, as it would bring the average spread price farther from the mean and increase profits.
+
+# Conclusion
+
+The two trading strategies based on a cointegrating relationship have demonstrated abnormal returns both in and out of sample, though it should be noted that there is room for improvement in algorithm design and implementation. Numerous improvements beyond the scope of this paper could be made to the algorithm, such as modeling asymmetric returns to the mean, including more comprehensive transaction cost analysis, fixing the scaling problem, and accounting for structural breaks. Each of these has the potential to improve the performance of the strategies and shed further light on the way that cointegration can be utilized as an effective trading signal.
+
+
+\newpage
+\newpage
+\newpage
+\pagebreak
 
 # References

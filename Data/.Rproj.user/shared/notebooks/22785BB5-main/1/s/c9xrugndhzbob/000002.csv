@@ -1,3 +1,0 @@
-"0","library(vars)"
-"0","lag_length <- VARselect(price, type = 'const')"
-"0","ll_table <- data.frame(lag_length$selection)"
