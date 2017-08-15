@@ -1,0 +1,15 @@
+yaml header
+
+title: "Cointegration in Crude Prices"
+subtitle: "Trading strategies to take advantage of a long-term equilibrium relationship between Brent and WTI."
+author: "Cameron Pfiffer"
+date: "August 2017"
+header-includes:
+   - \usepackage{float}
+output: 
+  bookdown::pdf_document2:
+    latex_engine: xelatex
+    toc: no
+csl: harvard.csl
+bibliography: bibliography.bibtex
+

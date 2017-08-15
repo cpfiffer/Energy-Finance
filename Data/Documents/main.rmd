@@ -8,7 +8,8 @@ header-includes:
 output:
   bookdown::pdf_document2:
     latex_engine: xelatex
-    toc: no
+    toc: yes
+    toc_depth: 1
 csl: harvard.csl
 bibliography: bibliography.bibtex
 ---
@@ -20,19 +21,9 @@ knitr::opts_chunk$set(echo = FALSE, include=FALSE,
                       warning = FALSE, error = FALSE, message = FALSE)
 ```
 
-\vskip 2in
-
-\begin{center}
-Prepared for Energy Finance 2017
-
-ICMA Center - Henley Business School
-
-Dr. Marcel Prokopczuk
-
-Student ID - 24890669
-\end{center}
-
 \vskip 2.5in
+
+\vskip 1in
 
 ```{r, out.width='50%', include=TRUE, fig.align='center'}
 knitr::include_graphics("icma.png")
@@ -48,7 +39,7 @@ library(tidyquant)
 library(pander)
 library(feather)
 library(extrafont)
-options(scipen=8)
+options(scipen=8, digits=2)
 ```
 
 ```{r include=FALSE}
@@ -70,7 +61,7 @@ create_xts2 <- function(df) {
 \pagebreak
 
 # Introduction
-Are Brent and West Texas Intermediate (WTI) crude oils co-integrated? An economic case could be made for the two oil grades to be co-integrated -- they are essentially substitutes, with similar specific gravities and sulfur content. Indeed, Adelman [-@10.2307/41321691] famously claimed that "The world oil market, like the world ocean, is one great pool." This study reviews existing literature, examines the statistical relationship between Brent crude and WTI crude, proposes a trading strategy based on co-integration between the two securities, and concludes with a discussion of findings and areas of further study.
+Are Brent and West Texas Intermediate (WTI) crude oils co-integrated? An economic case could be made for the two oil grades to be co-integrated -- they are essentially substitutes, with similar specific gravities and sulfur content. Indeed, Adelman [-@10.2307/41321691] famously claimed that "The world oil market, like the world ocean, is one great pool." This study reviews existing literature, examines the statistical relationship between Brent crude and WTI crude, proposes a trading strategy based on co-integration between the two securities, and concludes with a discussion of findings and areas of further study[^github].
 
 # Literature Review
 
@@ -79,13 +70,13 @@ Co-integration as a concept was first introduced by Granger [-@granger1981some],
 
 There are consistent findings among academics that WTI and Brent are co-integrated. Hammoudeh et al. [-@showkat08] found co-integrating relationships in Brent and WTI (as well as Dubai and Maya crudes) using both the Engle-Granger method [-@engle1987co] and the M-TAR approach [@doi:10.1080/07350015.1998.10524769; @RePEc:bes:jnlbes:v:19:y:2001:i:2:p:166-76] which permits asymmetry in the return to equilibrium levels[^symmetry].  Fattouh [-@FATTOUH2010334] finds similar co-integrating relationships, though notes the presence of structural breaks and non-stationarity in crude price differentials in some extraordinary time periods. Numerous other academics have confirmed the existence of co-integration [@10.2307/41322733; @REBOREDO2011948; @kim2009study; @azar2017bias] using a variety of methodologies.
 
-[^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is highly important for trading strategies, though for simplicity, the co-integrating relationship between Brent and WTI used in the trading strategies that follow is assumed to be symmetric.
+[^symmetry]: Hammoudeh [-@showkat08] notes that there is cause to suspect asymmetrical returns to equilibrium; he cites the heterogeneity in global trader's expectations, compulsive and noisy trading, and transaction costs as potential factors. Asymmetry is important for trading strategies, though for simplicity, the co-integrating relationship between Brent and WTI used in the trading strategies that follow is assumed to be symmetric.
 
 ## Trading Strategy and Transaction Costs
 
-Developing a trading strategy requires the awareness of several key facts. First, in a world absent transaction costs, any deviation from the mean should spur immediate mean reversion no matter how small, as noted by Balke and Famby [-@10.2307/2527284]. In this study, some transaction costs are included by construction, as the trading simulation assumes that all purchases are make on the ask and all sales made on the bid. This is a simplifying assumption, as this merely accounts for explicit transaction costs, and not implicit costs such as opportunity cost and market impact, among others.
+Developing a trading strategy requires the awareness of several facts. First, in a world absent transaction costs, any deviation from the mean should spur immediate mean reversion no matter how small, as noted by Balke and Famby [-@10.2307/2527284]. In this study, some transaction costs are included by construction, as the trading simulation assumes that all purchases are made on the ask and all sales made on the bid. This is a simplifying assumption, as this merely accounts for explicit transaction costs, and not implicit costs such as opportunity cost and market impact, among others.
 
-Dunis et al. [-@doi:10.1080/09603100500426432] forms the primary inspiration for the trading strategies employed below. They designed strategies that trade when the co-integrated spread between Brent and WTI was larger or smaller than a given threshold, a methodology expanded upon in this paper. Other authors, such as Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in co-integrated equities. They find Sharpe ratios of approximately 0.90 for a momentum strategy, and 0.59 for a contrarian strategy. The results presented below following demonstrate moderately more subdued returns, though results are in line with expectations.
+Dunis et al. [-@doi:10.1080/09603100500426432] forms the primary inspiration for the trading strategies employed below. They designed strategies that trade when the co-integrated spread between Brent and WTI was larger or smaller than a given threshold, a methodology expanded upon in this paper. Other authors, such as Kawasaki et al. [-@kawasaki2003characterization] study contrarian and momentum trading strategies in co-integrated equities. They find Sharpe ratios between 0.90 and 0.59, higher than those this paper presents.
 
 # Data and Statistical Tests
 
@@ -171,7 +162,7 @@ Additional data includes S&P 500 prices for the same period in order to compare 
 
 ## Lag Length Selection
 
-It has been shown that lag length selection can have important effects on a VAR model's impulse response and variance decomposition[^var] [@66e755df06db415c83234a6bbc768a39], and Brooks [-@brooks2014introductory] notes that Johansen tests and Augmented Dickey-Fuller tests can be susceptible to improper lag selection. Thus, we select a lag length that creates produces the most parsimonious model, i.e., the smallest lag length. Table \@ref(tab:ic) presents the lag lengths suggested by four information criteria tests. All criteria suggest a lag length of 5, and this is used for further tests. A procedure evaluating the results from the Johansen test and the ADF test demonstrate that the same results are found using lags up to 60, at which point further testing is beyond reason, and we can be highly certain that the results are appropriate. 
+Lag length selection can have important effects on a VAR model's impulse response and variance decomposition[^var] [@66e755df06db415c83234a6bbc768a39], and Brooks [-@brooks2014introductory] notes that Johansen tests and Augmented Dickey-Fuller tests can be susceptible to improper lag selection. Thus, we select a lag length that creates produces the most parsimonious model, i.e., the smallest lag length. Table \@ref(tab:ic) presents the lag lengths suggested by four information criteria tests. All criteria suggest a lag length of 5, and this is used for further tests. A procedure evaluating the results from the Johansen test and the ADF test demonstrate that the same results are found using lags up to 60, at which point further testing is beyond reason, and we can be highly certain that the results are appropriate. 
 
 [^var]: This paper presents neither form of VAR analysis, as it is primarily concerned with the co-integrating vector given by the Johansen test, though it is good practice regardless to select appropriate lag lengths.
 
@@ -219,7 +210,7 @@ knitr::kable(adf_table, caption = "Augmented Dickey-Fuller Summary",
 
 ## Testing for Cointegration
 
-Two common methodologies in testing for co-integration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is used only to confirm that the two series are cointegrated, while the Johansen test determines the cointegrating vector for the trading strategies. Both tests are evaluated with a constant in an effort to better account for high volatility periods in between 2008 and 2012. \autoref{egsummary} displays the results of the residuals test, and \autoref{egmodel} summarizes the results of the Engle-Granger error correction model. \autoref{joc-coef} and \autoref{p-vals} present the cointegrating vector found in the Johansen test and the relevant test statistics respectively.
+Two common methodologies in testing for co-integration are the Engle-Granger methodology, and the Johansen test. The Engle-Granger procedure is used only to confirm that the two series are cointegrated, while the Johansen test determines the cointegrating vector for the trading strategies. Both tests are evaluated with a constant in an effort to better account for a high volatility period in between 2008 and 2012. \autoref{egsummary} displays the results of the residuals test, and \autoref{egmodel} summarizes the results of the Engle-Granger error correction model. \autoref{joc-coef} and \autoref{p-vals} present the cointegrating vector found in the Johansen test and the relevant test statistics respectively.
 
 
 ```{r}
@@ -243,6 +234,9 @@ row.names(eg_coef) <- c("Intercept",
 ```
 
 ```{r egsummary, include=TRUE, fig.cap="Engle-Granger Residuals Test"}
+panderOptions('digits', 2)
+panderOptions('round', 2)
+panderOptions('keep.trailing.zeros', TRUE)
 pander(epsilon, caption = "\\label{egsummary}Engle-Granger Residuals Test",
              format = 'pandoc')
 ```
@@ -300,9 +294,9 @@ Using the cointegrating vector found previously:
 
 $$\text{spread}_t =\text{wti}_t-0.873\text{brent}_t-5.425$$
 
-Where $\text{spread}_t$ is the stationary series created by an intercept ($\alpha$), the price of WTI at time $t$, and the price of Brent at time $t$ multiplied by a cointegrating coefficient ($\beta_1$). Figure \@ref(fig:stationary-series) plots this series for the entire data set. A threshold is then utilized as in Dunis et al. [-@doi:10.1080/09603100500426432], whereby a signal to purchase WTI and sell Brent if the spread is below the negative threshold (long the spread) or the opposite (short the spread) if the spread is above the positive threshold. Figure \@ref(fig:stationary-series) also shows this threshold set at $\pm 0.3$ in dark blue. This threshold was selected by running an optimization problem through the trading algorithm to maximize Sharpe ratio in the in-sample period, and was averaged between the best threshold for the two strategies.
+Where $\text{spread}_t$ is the stationary series created by an intercept ($\alpha$), the price of WTI at time $t$, and the price of Brent at time $t$ multiplied by a cointegrating coefficient ($\beta_1$). Figure \@ref(fig:stationary-series) plots this series for the entire data set. A threshold is then utilized as in Dunis et al. [-@doi:10.1080/09603100500426432], whereby the strategy purchases WTI and sells Brent if the spread is below the negative threshold (long the spread) or the opposite (short the spread) if the spread is above the positive threshold. Figure \@ref(fig:stationary-series) shows this threshold set at $\pm 0.3$ in dark blue. This threshold was selected by running an optimization problem through the trading algorithm to maximize Sharpe ratio in the in-sample period, and was averaged between the best threshold for the two strategies.
 
-```{r stationary-series, include=TRUE, fig.cap="Cointegrated Series of WTI and Brent with Treshold"}
+```{r stationary-series, include=TRUE, fig.cap="Cointegrated Series of WTI and Brent with Treshold", fig.width=10, fig.height=2.5}
 make_cointegrated <- function() {
   y = p_tib$wti.l1
   x = p_tib$brent.l1
@@ -330,7 +324,7 @@ ggplot() +
   theme_minimal()
 ```
 
-Two primary strategies[^github] are utilized under this threshold approach. The first, is the _accumulate position_ approach, because it purchases or sells 100 units of WTI and takes an opposite position in approximately 87 units of Brent (as given by the $\beta_1$ coefficient) for each day that the spread is outside the boundaries of the threshold. The second strategy, the _buy and hold_, purchases or sells 5,000 units of WTI and takes an opposite position in approximately 4,350 units of Brent, selling only when the spread reaches the opposite threshold from when the position was entered. Both strategies close out all positions at the end of the sample period. The bid/ask spread is assumed to be symmetric about the midpoint, and is accounted for in the strategy by impacting cash flows. For every transaction made the algorithm, half of the bid ask spread for the time of the trade per asset is is assessed to the cash flow. No other transaction costs, such as brokerage, commission, exchange fees, settlement, market impact, or other implicit costs are considered, and thus the portfolio return should be considered an overestimate. Portfolio returns are calculated by the mark-to-market sum of the position in Brent and WTI, and cash holdings. Standard deviation is calculated using a daily risk-free rate derived from the 1 year US Treasury bond midpoint yield. Tables \autoref{strategy-return-in} and \autoref{strategy-return-out} present summary statistics for the two strategies.
+Two primary strategies are utilized under this threshold approach. The first, is the _accumulate position_ approach, which purchases or sells 100 units of WTI and takes an opposite position in approximately 87 units of Brent (as given by the $\beta_1$ coefficient) for each day that the spread is outside the boundaries of the threshold. The second strategy, the _buy and hold_, purchases or sells 5,000 units of WTI and takes an opposite position in approximately 4,350 units of Brent, selling only when the spread reaches the opposite threshold from when the position was entered. Both strategies close out all positions at the end of the sample period. The bid/ask spread is assumed to be symmetric about the midpoint, and is accounted for in the strategy by impacting cash flows. For every transaction made, half of the bid ask spread at the time of the trade per asset is is assessed to the cash flow. No other transaction costs, such as brokerage, commission, exchange fees, settlement, market impact, or other implicit costs are considered, and thus the portfolio return should be considered an overestimate. Portfolio returns are calculated by the mark-to-market sum of the position in Brent and WTI, and cash holdings. Standard deviation is calculated using a daily risk-free rate derived from the 1 year US Treasury bond midpoint yield. Tables \autoref{strategy-return-in} and \autoref{strategy-return-out} present summary statistics for the two strategies.
 
 [^github]: All code utilized in this project can be found at www.github.com/cpfiffer/energy-finance.
 
@@ -469,7 +463,7 @@ As the results in the previous section illustrate, it is possible to take advant
 
 First, a large portion of the cointegrating vector was estimated during an incredibly stable period for crude prices, and the long-term relationship may have changed since what appears to be a structural break between 2008-2015. If this is the case, the relatively short out-of-sample testing period of two years may fail to capture the nature of the modified relationship and the strategy may go from consistently profitable to unprofitable. Additionally, much of the profit realized in the strategies came from a period of high relative volatility, and returns may be far less consistent in the future.
 
-Second, the strategies fail to consider multiple elements of market microstructure, such as implicit transaction costs, brokerage fees, short selling fees, exchange fees, and other such costs that may affect the decision making process. It is also assumed that an asset can be transacted at the close price, both long and short, and ignores liquidity provisions and market impact. Such transaction costs cannot be so easily discounted, and can have out-sized effects on highly active strategies such as the accumulate position strategy, which made 4,792 trades in the test period as compared to the buy and hold strategy which only traded 182 times. It follows then that an implementation of this strategy in actual trading conditions would suffer dampened returns.
+Second, the strategies fail to consider multiple elements of market microstructure, such as implicit transaction costs, brokerage fees, short selling fees, exchange fees, and other such costs that may affect the decision making process. It is also assumed that an asset can be transacted at the close price, both long and short, and ignores liquidity provisions and market impact. Such transaction costs cannot be so easily discounted, and can have out-sized effects on highly active strategies such as the accumulate position strategy, which made 4,792 trades in the test period as compared to the buy and hold strategy which only traded 182 times. It follows then that an implementation of this strategy in actual trading conditions would likely suffer dampened returns.
 
 Third, both the buy and hold and accumulate position strategies suffer from a scale problem; they often hold a large amount of cash and do not properly utilize all cash holdings. Assets are purchased as a fixed amount, and do not adapt to performance. This is less important than in a pure long-only strategy, as going long in one asset and short another often keeps net changes in cash very low. Utilizing more cash reserves and increasing purchasing scale would be similar to leveraging and magnifying returns and losses, and would allow the strategies to modulate the number of securities transacted to keep holdings in line with cash reserves. It may be more advantageous to purchase more assets the farther away from the spread one is, particularly for the accumulate position strategy, as it would bring the average spread price farther from the mean and increase profits.
 
